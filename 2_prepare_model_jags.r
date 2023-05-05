@@ -48,11 +48,11 @@ library("inlaVP")
 library(R2jags)
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-tab=fread("data_for_analyses.txt",na.string=c("",NA))
+for(pays in c("Costa-Rica","Ecuador")){
+
+tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
 
 #### CALCULATE TRAIT MATCHING:
-hist(tab$complementarity)
-hist(tab$barrier)
 tab$mismatch=abs(tab$Tube_length-tab$bill_length) #trait mismatch, scaled for convergence
 tab$elev=scale(tab$min_transect_elev)
 
@@ -85,16 +85,20 @@ tab$num_time=as.numeric(as.factor(tab$num_time)) #rescale this factor to start a
 #create a table with bill length for hummingbirds
 tabu=unique(tab[,c("hummingbird_num","bill_length")])
 names(tabu)=paste0(names(tabu),"u")
+tabu=tabu[order(tabu$hummingbird_numu),]
 
 sites=unique(tab[,c("site","site_num","midpoint_Longitude","midpoint_Latitude")])
+sites=sites[order(sites$site_num),]
 Distance=dist(sites[,c("midpoint_Longitude","midpoint_Latitude")], method="euclidean", diag=TRUE, upper=TRUE)
+Distance=as.matrix(Distance)/max(Distance)
 
 #assemble data
 dat=c(as.list(tab),as.list(tabu),list(N=nrow(tab),
 Nbirds=length(unique(tab$hummingbird_num)),Nbird_site=length(unique(tab$hummingbird_species_site_num)),Nsites=length(unique(tab$site_num)),Nplants=length(unique(tab$plant_num)),
-Ntemp=length(unique(tab$num_time)),Nsite=length(unique(tab$site_num)),Distance=as.matrix(Distance)))
+Ntemp=length(unique(tab$num_time)),Nsite=length(unique(tab$site_num)),Distance=Distance))
 
-save(dat,file=paste0("data_formodel.RData"))
+save(dat,file=paste0("data_formodel_",pays,".RData"))
+}
 
 ######################################################################################################
 ######################################################################################################
@@ -109,10 +113,10 @@ model{
 
 # Barrier assessment
 for(j in 1:Nbirds){
-barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.5*bill_lengthu[j]*0.5*bill_lengthu[j]))T(bill_lengthu[j],2*bill_lengthu[j])
-#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
 match_infer[j] ~ dnorm(bill_lengthu[j],1/(0.2*bill_lengthu[j]*0.2*bill_lengthu[j]))T(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
 #match_infer[j] ~ dunif(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
+barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.3*bill_lengthu[j]*0.3*bill_lengthu[j]))T(max(bill_lengthu[j],match_infer[j]),2*bill_lengthu[j])
+#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
 }
 
 # Process model
@@ -127,9 +131,9 @@ for(i in 1:N){
 	
 	# Interaction frequency:
 	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i] +plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
-	#p[i] <- r/(r+(lambda[i] * Z[i]))
-	#Yfreq_r[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
-	Yfreq_r[i] ~ dpois(lambda[i] * Z[i] + 0.00000000000000001)
+	p[i] <- r/(r+(lambda[i] * Z[i]))
+	Yfreq_r[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
+	#Yfreq_r[i] ~ dpois(lambda[i] * Z[i] + 0.00000000000000001)
 	
 }
 
@@ -180,12 +184,17 @@ sd.bird ~ dt(0, 1, 1)T(0,)
 
 
 # PRIOR OVERDISPERTION:
-#r ~ dunif(0,50)
+r ~ dnegbin(0.2,4)
 
 }
 "
 
 writeLines(model_string,con="model.txt")
+
+
+
+
+
 
 ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect","temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec")
 

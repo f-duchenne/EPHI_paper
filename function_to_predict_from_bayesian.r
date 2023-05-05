@@ -1,4 +1,4 @@
-predict_model=function(chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,year,nb_net){
+predict_model=function(data,chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,year,nb_net){
 
 ##### NEED TO HAVE THE DATA FROM THE MODEL LOAD
 
@@ -18,6 +18,7 @@ if(!exists("month")){month=NA}
 if(!exists("year")){year=NA}
 if(!exists("type")){stop("please precise the type of prediction you want")}
 
+
 ####SOME FUNCTIONS:
 inv.logit=function(y){exp(y)/(1+exp(y))}
 
@@ -35,26 +36,28 @@ return(resi)
 if(nsampling>10000){stop("nsampling is higher than 10000, it is too high for your fucking computer")}
 if(nsampling<100){stop("nsampling is lower than 100, it is too low to get something trustable")}
 if(!(type %in% c('barrier','frequency','total','network'))){stop("type of predict does correspond to 'barrier', 'frequency', 'total' or 'network'")}
-if(!is.na(random_effects[1]) & any(!(random_effects %in% c("site","plants","bird_site","temp")))){stop("random effects to include in predictions do not correspond to 'site','plants','bird_site' or 'temp'")}
+if(!is.na(random_effects[1]) & any(!(random_effects %in% c("site","plant","bird_site","temp")))){stop("random effects to include in predictions do not correspond to 'site','plants','bird_site' or 'temp'")}
 
 
 #convert discrete variables to numerical index
 bidon=unique(as.data.frame(dat[c("hummingbird_num","hummingbird_species")]))
 if(!is.na(bird[1])){
 bird_num=bidon$hummingbird_num[match(bird,bidon$hummingbird_species)]
-if(length(bird_num)==0){stop("The humming species does fit the list of the model, please check the name")}
+if(length(which(is.na(bird_num)))>0){stop("Some birds were not in the original data")}
 }
 
 bidon=unique(as.data.frame(dat[c("plant_num","plant_species")]))
 if(!is.na(plant[1])){
 plant_num=bidon$plant_num[match(plant,bidon$plant_species)]
-if(length(plant_num)==0){stop("The plant species does fit the list of the model, please check the name or set plant to NA to neglect the random effect")}
+plant_dontfit=which(is.na(plant_num))
+plant_num[plant_dontfit]=1
+if(length(plant_dontfit)>0){print("Some plants were not in the original data, random effect set to zero for those species")}
 }
 
 bidon=unique(as.data.frame(dat[c("site_num","site")]))
 if(!is.na(site[1])){
 site_num=bidon$site_num[match(site,bidon$site)]
-if(length(site_num)==0){stop("The site does fit the list of the model, please check the name or set site to NA to neglect the random effect")}
+if(length(which(is.na(site_num)))>0){stop("Some sites were not in the original data")}
 }
 
 bidon=unique(as.data.frame(dat[c("hummingbird_species_site_num","hummingbird_species_site")]))
@@ -63,7 +66,7 @@ if(!is.na(site[1]) & !is.na(bird[1])){bird_site_num=bidon$hummingbird_species_si
 bidon=unique(as.data.frame(dat[c("num_time","month","year")]))
 if(!is.na(month[1]) & !is.na(year[1])){
 temp_num=bidon$num_time[match(paste(month,year),paste(bidon$month,bidon$year))]
-if(length(temp_num)==0){stop("The month/year does fit the list of the model, please check the name or set site to NA to neglect the random effect")}
+if(length(which(is.na(temp_num)))>0){stop("Some month-year were not in the original data")}
 }
 
 
@@ -103,23 +106,28 @@ mismatch_var <-  abs(t(replicate(nsampling,trait_plant))-rand_comb(bird_num,"mat
 print("No values provided for mismatch, use latent ones")
 }
 
-if(is.na(pheno[1])){phen=mean(dat$value,na.rm=T)*chains[x,"pheno"]}else{phen=chains[x,"pheno"]*t(replicate(nsampling,pheno))}
-if(is.na(abond[1])){abd=mean(dat$abond_flower_log,na.rm=T)*chains[x,"abond"]}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
-if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{plt=rand_comb(plant_num,"plant_effect")}
+if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=chains[x,"pheno"]*t(replicate(nsampling,pheno))}
+if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
+if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
+plt=rand_comb(plant_num,"plant_effect")
+}
 if(is.na(site[1]) | !("site" %in% random_effects)){si=0}else{si=rand_comb(site_num,"site_effect")}
-if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effects)){tem=0}else{tem=rand_comb(list(site_num,temp_num),name="temp_effect")}
+if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effects)){tem=0}else{tem=rand_comb(list(site_num,temp_num),"temp_effect")}
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=rand_comb(bird_site_num,"sitebird_effect")}
 
+
 lambda_log=matrix(intercept+chains[x,"traitMismatch"]*mismatch_var+phen+abd+plt+si+tem+bsi,nrow=nsampling)
+p=chains[x,"r"]/(chains[x,"r"]+exp(lambda_log))
+
 		
-if(type=="total"){Z=matrix(rbinom(ncol(proba)*nrow(proba),1,proba),nrow=nsampling)}else{Z=1}
-if(type!="total"){proba=1}
+if(type=="total"){Z=matrix(rbinom(ncol(proba)*nrow(proba),1,proba),nrow=nsampling)}else{
+Z=1
+}
 
-
-frequencies=matrix(rpois(ncol(lambda_log)*nrow(lambda_log), exp(lambda_log)*Z),nrow=nsampling)
+frequencies=matrix(rnbinom(ncol(p)*nrow(p),size=chains[x,"r"],prob=p),nrow=nsampling)
 
 freq_suma=data.frame(site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,abond=abond,mismatch=mismatch,barrier=barrier,month=month,year=year,
-average_lambda=apply(exp(lambda_log)*proba,2,mean),lwr_lambda=apply(exp(lambda_log)*proba,2,quantile,prob=0.025),upr_lambda=apply(exp(lambda_log)*proba,2,quantile,prob=0.975),average_freq=apply(frequencies,2,mean),
+average_lambda=apply(exp(lambda_log)*Z,2,mean),lwr_lambda=apply(exp(lambda_log)*Z,2,quantile,prob=0.025),upr_lambda=apply(exp(lambda_log)*Z,2,quantile,prob=0.975),average_freq=apply(frequencies,2,mean),
 median_freq=apply(frequencies,2,median),lwr_freq=apply(frequencies,2,quantile,prob=0.025),upr_freq=apply(frequencies,2,quantile,prob=0.975))
 }
 
@@ -151,9 +159,12 @@ mismatch_var <-  abs(t(replicate(1,trait_plant))-apply(chains[,paste0("match_inf
 print("No values provided for mismatch, use latent ones")
 }
 
-if(is.na(pheno[1])){phen=mean(dat$value,na.rm=T)*mean(chains[,"pheno"])}else{phen=mean(chains[,"pheno"])*t(replicate(1,pheno))}
-if(is.na(abond[1])){abd=mean(dat$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
-if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{plt=apply(chains[,paste0("plant_effect[",plant_num,"]")],2,mean)}
+if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=mean(chains[,"pheno"])*t(replicate(1,pheno))}
+if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
+if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
+plt=apply(chains[,paste0("plant_effect[",plant_num,"]")],2,mean)
+plt[plant_dontfit]=0
+}
 if(is.na(site[1]) | !("site" %in% random_effects)){si=0}else{si=apply(chains[,paste0("site_effect[",site_num,"]")],2,mean)}
 if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effects)){tem=0}else{tem=apply(chains[,paste0("temp_effect[",site_num,",",temp_num,"]")],2,mean)}
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=apply(chains[,paste0("sitebird_effect[",bird_site_num,"]")],2,mean)}
@@ -167,8 +178,7 @@ bin_link$binary=rbinom(nrow(bin_link),1,bin_link$average_proba)
 network=data.frame(essai=j,site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,abond=abond,mismatch=mismatch,barrier=barrier,
 month=month,year=year)
 network=merge(network,bin_link,by=c("plant_species","hummingbird_species"))
-network$freq=rpois(length(lambda_log),exp(lambda_log))
-network$inter=network$binary*network$freq
+network$freq=exp(lambda_log)
 networks=rbind(networks,network)
 }
 }
@@ -186,13 +196,3 @@ return(freq_suma)
 }
 
 
-
-
-plant="Palicourea salicifolia"
-site="MILL"
-bird="Panterpe insignis"
-trait_plant=12.12294
-pheno=0.06559683
-abond=4.290459
-month=3
-year=2021

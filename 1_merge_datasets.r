@@ -47,60 +47,61 @@ library(inlabru)
 library("inlaVP")
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2023-02-14"
+EPHI_version="2023-02-28"
 
+for(pays in c("Costa-Rica","Ecuador")){
 
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
-dat_cr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/Costa-Rica_",EPHI_version,"/Interactions_data_Costa-Rica.txt"),na.strings = c("",NA))
-dat_cr$date=as.IDate(dat_cr$date,"%Y/%m/%d") #be sure date columns is recognize as date
+dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Interactions_data_",pays,".txt"),na.strings = c("",NA))
+dat$date=as.IDate(dat$date,"%Y/%m/%d") #be sure date columns is recognize as date
 #LOAD CAMERA INFORMATION:
-cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/Costa-Rica_",EPHI_version,"/Cameras_data_Costa-Rica.txt"),na.strings = c("",NA))
+cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
 cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$start_date=as.IDate(cameras$start_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$month=month(cameras$start_date) #extract month from date column
 cameras$year=year(cameras$start_date) #extract year from date column
 plant_for_res=unique(cameras[,c("plant_species","month","year","site")])
 #LOAD TRANSECT DATA:
-tr_cr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/Costa-Rica_",EPHI_version,"/Transect_data_Costa-Rica.txt"),na.strings = c("",NA))
-tr_cr$date=as.IDate(tr_cr$date,"%Y/%m/%d") #be sure date columns is recognize as date
-tr_cr$month=month(tr_cr$date) #extract month from date column
-tr_cr$year=year(tr_cr$date) #extract year from date column
-tr_cr=subset(tr_cr,!is.na(plant_species)) %>% group_by(site,year,month,plant_species) %>% summarise(abond_flower=sum(total_flowers,na.rm=T)) #calculate a total abundance per plant species per month per site
+transects=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Transect_data_",pays,".txt"),na.strings = c("",NA))
+transects$date=as.IDate(transects$date,"%Y/%m/%d") #be sure date columns is recognize as date
+transects$month=month(transects$date) #extract month from date column
+transects$year=year(transects$date) #extract year from date column
+transects=subset(transects,!is.na(plant_species)) %>% group_by(site,year,month,plant_species) %>% summarise(abond_flower=sum(total_flowers,na.rm=T)) #calculate a total abundance per plant species per month per site
 #LOAD SITE METADATA:
-sites_cr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/Costa-Rica_",EPHI_version,"/Site_metadata_Costa-Rica.txt"),na.strings = c("",NA))
+sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
 
 
 #MERGE THEM:
 #interactions and cameras:
-dim(dat_cr)
-dat_cr=merge(dat_cr,cameras,by=c("waypoint","site"),all.x=T,all.y=T) #we want to keep cameras that did not detect any hummingbird
-dim(dat_cr)
-dat_cr=subset(dat_cr,!is.na(plant_species)) #remove data with no plant ID
-dim(dat_cr)
-dat_cr=subset(dat_cr,duration_sampling_hours>2) # remove data from camera with a problem (too short sampling time)
-dim(dat_cr)
-dim(subset(dat_cr,is.na(hummingbird_species)))
+dim(dat)
+dat=merge(dat,cameras,by=c("waypoint","site"),all.x=T,all.y=T) #we want to keep cameras that did not detect any hummingbird
+dim(dat)
+dat=subset(dat,!is.na(plant_species)) #remove data with no plant ID
+dim(dat)
+dat=subset(dat,duration_sampling_hours>2) # remove data from camera with a problem (too short sampling time)
+dim(dat)
+dim(subset(dat,is.na(hummingbird_species)))
 #add transect data:
-dim(dat_cr)
-dat_cr=merge(dat_cr,tr_cr,by=c("site","month","year","plant_species"),all.x=T,all.y=F)
-dim(dat_cr)
+dim(dat)
+dat=merge(dat,transects,by=c("site","month","year","plant_species"),all.x=T,all.y=F)
+dim(dat)
 #add site data:
-dim(dat_cr)
-dat_cr=merge(dat_cr,sites_cr,by=c("site"),all.x=T,all.y=F)
-dim(dat_cr)
+dim(dat)
+dat=merge(dat,sites,by=c("site"),all.x=T,all.y=F)
+dim(dat)
 
 #remove piercing interactions:
-dat_cr$piercing[is.na(dat_cr$piercing)]="no"
-dim(dat_cr)
-dat_cr=subset(dat_cr,piercing!="yes")
-dim(dat_cr)
+dat$piercing[is.na(dat$piercing)]="no"
+dim(dat)
+dat=subset(dat,piercing!="yes")
+dim(dat)
 
 #### CALCULATE INTERACTION FREQUENCIES
-tab=dat_cr %>% dplyr::group_by(hummingbird_species,plant_species,waypoint,duration_sampling_hours,site,month,year,abond_flower,midpoint_Longitude,midpoint_Latitude,min_transect_elev) %>% dplyr::summarise(Y=length(time[piercing!="yes"])) #number of interaction detected
+tab=dat %>% dplyr::group_by(hummingbird_species,plant_species,waypoint,duration_sampling_hours,site,month,year,abond_flower,midpoint_Longitude,midpoint_Latitude,min_transect_elev,Country) %>% dplyr::summarise(Y=length(time[piercing!="yes"])) #number of interaction detected
 tab$Yfreq=tab$Y/tab$duration_sampling_hours*24*7 #divide by sampling time to get interaction frequencies in nb inter./hour
 #### INFER ZEROS
-mat=dcast(tab,site+year+month+waypoint+plant_species+duration_sampling_hours+abond_flower+midpoint_Longitude+midpoint_Latitude+min_transect_elev~hummingbird_species,value.var="Yfreq",fill=0)
-tab=melt(mat,id.vars=c("site","year","month","waypoint","plant_species","duration_sampling_hours","abond_flower","midpoint_Longitude","midpoint_Latitude","min_transect_elev"),variable.name="hummingbird_species",value.name="Yfreq")
+mat=dcast(tab,site+year+month+waypoint+plant_species+duration_sampling_hours+abond_flower+midpoint_Longitude+midpoint_Latitude+min_transect_elev+Country~hummingbird_species,value.var="Yfreq",fill=0)
+tab=melt(mat,id.vars=c("site","year","month","waypoint","plant_species","duration_sampling_hours","abond_flower","midpoint_Longitude","midpoint_Latitude","min_transect_elev","Country"),variable.name="hummingbird_species",value.name="Yfreq")
 # CALCULATE TOTAL ABUNDANCE OF HUMMINGBIRDS PER SITES:
 tab=tab %>% dplyr::group_by(hummingbird_species,site) %>% dplyr::mutate(abond_total_h=sum(Yfreq)) #number of interaction detected
 #REMOVE HUMMINGBIRDS THAT ARE TOTALLY ABSENT FROM ONE SITE:
@@ -123,12 +124,12 @@ wmean <- function(v,z) {
 }
 
 #LOAD HUMMINGBIRD TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
-tr=fread("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_2023-01-24/Hummingbird_traits.txt",na.strings = c("",NA))
+tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_",EPHI_version,"/Hummingbird_traits.txt"),na.strings = c("",NA))
 tr$tail_length=as.numeric(as.character(tr$tail_length))
 tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),tail_length=wmean(tail_length,N))
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
-tr=fread("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_2023-01-24/Plant_traits.txt",na.strings = c("",NA))
+tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_",EPHI_version,"/Plant_traits.txt"),na.strings = c("",NA))
 tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>% summarise(Tube_length=mean(Tube_length*10,na.rm=T),Anther_length=mean(Anther_length*10,na.rm=T), Stigma_length=mean(Stigma_length*10,na.rm=T),
 Opening_corrolla=mean(Opening_corrolla,na.rm=T),Curvature_middle=mean(Curvature_middle,na.rm=T),Type=getmode(Type),sexualsys=getmode(SexualSystem))
 
@@ -146,17 +147,19 @@ phenoh=phenoh %>% group_by(site,month,hummingbird_species) %>% summarise(phenoh=
 phenoh$phenoh[is.na(phenoh$phenoh)]=0
 
 #plant phenologies based on transects
-plant_res=merge(plant_for_res,tr_cr,by=c("plant_species","month","year","site"),all=T)
+plant_res=merge(plant_for_res,transects,by=c("plant_species","month","year","site"),all=T)
 plant_res$abond_flower[is.na(plant_res$abond_flower)]=1
 plant_res=merge(plant_res,tr2[,c("plant_species","Tube_length")],by=c("plant_species"),all.x=T)
 plant_res=subset(plant_res,!is.na(plant_species))
+plant_res=plant_res %>% group_by(site) %>% mutate(n_visits=length(unique(paste(month,year))))
+plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower)/n_visits)
 
-phenop=plant_res %>% group_by(plant_species,site,month,Tube_length) %>% summarise(value=sum(abond_flower))
+phenop=plant_res %>% group_by(plant_species,site,month,Tube_length,abond_flower_moy) %>% summarise(value=sum(abond_flower))
 bidon=expand.grid(month=1:12,site=unique(phenop$site))
 phenop=merge(phenop,bidon,by=c("site","month"))
 phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value))
-phenop=phenop %>% group_by(site,month,plant_species,Tube_length) %>% summarise(phenop=value/sumpheno)
-fwrite(phenop,"plants_per_site_per_month.txt")
+phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tube_length) %>% summarise(phenop=value/sumpheno)
+fwrite(phenop,paste0("plants_per_site_per_month_",pays,".txt"))
 
 
 dim(tab)
@@ -166,12 +169,12 @@ tab=merge(tab,phenop[,c("site","month","plant_species","phenop")],by=c("site","m
 dim(tab)
 
 #### EMPIRICAL NETWORKS
-emp_net=dat_cr %>% dplyr::group_by(hummingbird_species,plant_species,site) %>% dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
+emp_net=dat %>% dplyr::group_by(hummingbird_species,plant_species,site) %>% dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
 emp_net$Y=emp_net$Y*24*7
 emp_net=subset(emp_net,!is.na(hummingbird_species))
-fwrite(emp_net,"empirical_networks.txt")
+fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
 
 #EXPORT DATASET
-fwrite(tab,"data_for_analyses.txt")
-
+fwrite(tab,paste0("data_for_analyses_",pays,".txt"))
+}
 

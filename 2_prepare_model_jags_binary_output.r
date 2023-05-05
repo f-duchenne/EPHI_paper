@@ -12,10 +12,10 @@ model{
 
 # Barrier assessment
 for(j in 1:Nbirds){
+barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.2*bill_lengthu[j]*0.2*bill_lengthu[j]))T(bill_lengthu[j],2*bill_lengthu[j])
+#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
 match_infer[j] ~ dnorm(bill_lengthu[j],1/(0.2*bill_lengthu[j]*0.2*bill_lengthu[j]))T(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
 #match_infer[j] ~ dunif(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
-barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.3*bill_lengthu[j]*0.3*bill_lengthu[j]))T(max(bill_lengthu[j],match_infer[j]),2*bill_lengthu[j])
-#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
 }
 
 # Process model
@@ -25,7 +25,7 @@ for(i in 1:N){
 	mismatch_var[i] <- abs(Tube_length[i]-match_infer[hummingbird_num[i]])
 	
 	# Zero inflation:
-	logit(pz[i]) <- Interceptpz + traitBarrier * barrier_var[i]
+	logit(pz[i]) <- Interceptpz + (-20* traitBarrier * barrier_var[i])
 	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
 	
 	# Interaction frequency:
@@ -37,12 +37,12 @@ for(i in 1:N){
 }
 
 # PRIORS FIXED EFFECTS:
-Interceptpz ~ dnorm(0, 0.5)
+Interceptpz ~ dnorm(0, 0.5)T(-10,10)
 Intercept ~ dnorm(0, 0.01) 
 traitMismatch ~ dnorm(0, 0.01)T(,0)
 pheno ~ dnorm(0, 0.01)
 abond ~ dnorm(0, 0.01)
-traitBarrier ~ dnorm(0, 0.5)T(,0)
+traitBarrier ~ dbern(0.5)
 
 # PRIORS RANDOM EFFECTS:
 #spatial autocorrelation:
@@ -88,23 +88,17 @@ r ~ dnegbin(0.2,4)
 }
 "
 
-writeLines(model_string,con="model_free.txt")
+writeLines(model_string,con="model_binary.txt")
+
 
 ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect","temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec")
 
 Inits <- function(){list()}
 
 t1=Sys.time()
-results1 <- jags(model.file="model.txt", parameters.to.save=ParsStage, n.chains=1, data=dat,n.burnin = 50,  n.iter = 100, n.thin = 2,inits =Inits,jags.seed =2)
+results1 <- jags(model.file="model_binary.txt", parameters.to.save=ParsStage, n.chains=1, data=dat,n.burnin = 50,  n.iter = 100, n.thin = 2,inits =Inits,jags.seed =2)
 t2=Sys.time()
 t2-t1
 
-save(results1,file=paste0("chain_model_",j,".RData"))
-#
-
-
-
-
-
-
-
+obj1=as.mcmc(results1)
+plot(obj1[,"traitBarrier"])
