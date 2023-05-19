@@ -49,15 +49,34 @@ mco_ec <- mcmcOutput(mcmc.list(obj1,obj2,obj3))
 suma_ec=summary(mco_ec)
 suma_ec$varia=rownames(suma_ec)
 
+#Brazil
+load("data_formodel_Brazil.RData")
+dat_br=dat
+#### free prior
+load("chain_model_free_Brazil_1.RData")
+model1=results1
+load("chain_model_free_Brazil_2.RData")
+model2=results1
+load("chain_model_free_Brazil_3.RData")
+model3=results1
+obj1=as.mcmc(model1)
+obj2=as.mcmc(model2)
+obj3=as.mcmc(model3)
+plot(mcmc.list(obj1,obj3,obj2)[,"Intercept"])
+#combine chains and get a summary:
+mco_br <- mcmcOutput(mcmc.list(obj1,obj2,obj3))
+suma_br=summary(mco_br)
+suma_br$varia=rownames(suma_br)
 
-couleurs=c("#0B4F6C","#679436","#064789")
+
+couleurs=c("#679436","#0B4F6C","#064789")
 
 pre1=predict_model(data=dat_cr,chains=mco_cr,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=seq(0,60,length.out=100),
 barrier=NA,pheno=NA,abond=NA,type="frequency",random_effects=NA,month=NA,year=NA)
 pre1$Country="Costa Rica"
-pre2=predict_model(data=dat_ec,chains=mco_ec,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=seq(0,60,length.out=100),
+pre2=predict_model(data=dat_br,chains=mco_br,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=seq(0,60,length.out=100),
 barrier=NA,pheno=NA,abond=NA,type="frequency",random_effects=NA,month=NA,year=NA)
-pre2$Country="Ecuador"
+pre2$Country="Brazil"
 
 pred_mism=rbind(pre1,pre2)
 
@@ -73,8 +92,8 @@ labs(col="",fill="")+ggtitle("a")+guides(y="none")
 
 pre1=predict_model(data=dat_cr,chains=mco_cr,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=NA,barrier=c(0,1),pheno=NA,abond=NA,type="barrier",random_effects=NA,month=NA,year=NA)
 pre1$Country="Costa Rica"
-pre2=predict_model(data=dat_ec,chains=mco_ec,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=NA,barrier=c(0,1),pheno=NA,abond=NA,type="barrier",random_effects=NA,month=NA,year=NA)
-pre2$Country="Ecuador"
+pre2=predict_model(data=dat_br,chains=mco_br,nsampling=5000,site=NA,bird=NA,plant=NA,trait_plant=NA,mismatch=NA,barrier=c(0,1),pheno=NA,abond=NA,type="barrier",random_effects=NA,month=NA,year=NA)
+pre2$Country="Brazil"
 pred_barr=rbind(pre1,pre2)
 
 pl2=ggplot(data=pred_barr,aes(x=as.factor(barrier),y=average_proba,color=Country))+
@@ -88,22 +107,22 @@ labs(col="",fill="")+ggtitle("b")+scale_color_manual(values=couleurs)
 
 
 #### L2 Match optimum
-tabu=as.data.frame(dat_cr[c("hummingbird_numu","bill_lengthu")])
-tabu=cbind(tabu,suma_cr[grep("match_infer",suma$varia),])
+tabu=as.data.frame(dat_cr[c("hummingbird_numu","culmen_lengthu")])
+tabu=cbind(tabu,suma_cr[grep("match_infer",suma_cr$varia),])
 tabu$Country="Costa Rica"
 
-tabu2=as.data.frame(dat_ec[c("hummingbird_numu","bill_lengthu")])
-tabu2=cbind(tabu2,suma_ec[grep("match_infer",suma_free$varia),])
-tabu2$Country="Ecuador"
+tabu2=as.data.frame(dat_br[c("hummingbird_numu","culmen_lengthu")])
+tabu2=cbind(tabu2,suma_br[grep("match_infer",suma_br$varia),])
+tabu2$Country="Brazil"
 
 pred_L2=rbind(tabu,tabu2)
 
-ribb=data.frame(bill_lengthu=seq(0.9*min(tabu$bill_lengthu),1.05*max(tabu$bill_lengthu),length.out=100))
-ribb$ymax=1.5*ribb$bill_lengthu
-ribb$ymin=0.5*ribb$bill_lengthu
+ribb=data.frame(culmen_lengthu=seq(0.7*min(tabu$culmen_lengthu),1.05*max(tabu$culmen_lengthu),length.out=100))
+ribb$ymax=1.5*ribb$culmen_lengthu
+ribb$ymin=0.5*ribb$culmen_lengthu
 
-pl3=ggplot(data=pred_L2,aes(x=bill_lengthu,y=mean,ymax=l95,ymin=u95,color=Country))+
-geom_ribbon(data=ribb,aes(y=bill_lengthu,ymin=ymin,ymax=ymax),fill="white",col=NA)+
+pl3=ggplot(data=pred_L2,aes(x=culmen_lengthu,y=mean,ymax=l95,ymin=u95,color=Country))+
+geom_ribbon(data=ribb,aes(y=culmen_lengthu,ymin=ymin,ymax=ymax),fill="white",col=NA)+
 geom_abline(intercept=0,slope=1,col="grey")+geom_pointrange(fatten=2,alpha=0.6,size=0.2)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),
 plot.title=element_text(size=14,face="bold",hjust = 0),legend.position="none",panel.background = element_rect(fill = "lightgrey"))+
@@ -114,29 +133,29 @@ labs(col="",fill="")+ggtitle("c")+coord_cartesian(expand=F)
 
 
 #### L1 Barrier threshold
-tabu=as.data.frame(dat[c("hummingbird_numu","bill_lengthu")])
-tabu=cbind(tabu,suma[grep("barrier_infer",suma$varia),])
-tabu$prior="conservative prior"
+tabu=as.data.frame(dat_cr[c("hummingbird_numu","culmen_lengthu")])
+tabu=cbind(tabu,suma_cr[grep("barrier_infer",suma_cr$varia),])
+tabu$Country="Costa Rica"
 
-tabu2=as.data.frame(dat[c("hummingbird_numu","bill_lengthu")])
-tabu2=cbind(tabu2,suma_free[grep("barrier_infer",suma_free$varia),])
-tabu2$prior="free prior"
+tabu2=as.data.frame(dat_br[c("hummingbird_numu","culmen_lengthu")])
+tabu2=cbind(tabu2,suma_br[grep("barrier_infer",suma_br$varia),])
+tabu2$Country="Brazil"
 
 pred_L1=rbind(tabu,tabu2)
 
 
-ribb=data.frame(bill_lengthu=seq(0.9*min(tabu$bill_lengthu),1.05*max(tabu$bill_lengthu),length.out=100))
-ribb$ymax=1*ribb$bill_lengthu
-ribb$ymin=2*ribb$bill_lengthu
+ribb=data.frame(culmen_lengthu=seq(0.7*min(tabu$culmen_lengthu),1.05*max(tabu$culmen_lengthu),length.out=100))
+ribb$ymax=1*ribb$culmen_lengthu
+ribb$ymin=2*ribb$culmen_lengthu
 
-pl4=ggplot(data=pred_L1,aes(x=bill_lengthu,y=mean,ymax=l95,ymin=u95,color=prior))+
-geom_ribbon(data=ribb,aes(y=bill_lengthu,ymin=ymin,ymax=ymax),fill="white",col=NA)+
+pl4=ggplot(data=pred_L1,aes(x=culmen_lengthu,y=mean,ymax=l95,ymin=u95,color=Country))+
+geom_ribbon(data=ribb,aes(y=culmen_lengthu,ymin=ymin,ymax=ymax),fill="white",col=NA)+
 geom_abline(intercept=0,slope=1,col="grey")+geom_pointrange(fatten=2,alpha=0.6,size=0.2)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_rect(fill = "lightgrey"),
 plot.title=element_text(size=14,face="bold",hjust = 0),legend.position="none")+ylab(bquote(atop("Threshold for exploitation barrier",paste("(",italic("L1"),", in mm)"))))+
 xlab("Hummingbird bill length (mm)")+
-scale_color_manual(values=c("#0B4F6C","#CBB9A8"))+scale_fill_manual(values=c("#0B4F6C","#CBB9A8"))+
+scale_color_manual(values=couleurs)+scale_fill_manual(values=couleurs)+
 labs(col="",fill="")+ggtitle("d")+coord_cartesian(expand=F)
 
 

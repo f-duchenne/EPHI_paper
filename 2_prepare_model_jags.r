@@ -48,12 +48,12 @@ library("inlaVP")
 library(R2jags)
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-for(pays in c("Costa-Rica","Ecuador")){
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
 tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
 
 #### CALCULATE TRAIT MATCHING:
-tab$mismatch=abs(tab$Tube_length-tab$bill_length) #trait mismatch, scaled for convergence
+tab$mismatch=abs(tab$Tube_length-tab$culmen_length) #trait mismatch
 tab$elev=scale(tab$min_transect_elev)
 
 #### CALCULATE PHENOLOGICAL MATCHING:
@@ -63,8 +63,10 @@ tab$phenomatch=tab$phenoh*tab$phenop
 tab$abond_flower[is.na(tab$abond_flower) | tab$abond_flower==0]=1
 tab$abond_flower_log=log(tab$abond_flower)
 
+unique(tab$site)
 #REMOVE DATA WITHOUT TRAITS
 tab=subset(tab,!is.na(mismatch))
+unique(tab$site)
 
 #PREPARE DATA FOR TEMPORAL AND SPATIAL AUTOCORRELATION:
 tab$site <- factor(tab$site)
@@ -83,7 +85,7 @@ tab$site_num=as.numeric(as.factor(tab$site))
 tab$num_time=as.numeric(as.factor(tab$num_time)) #rescale this factor to start at one
 
 #create a table with bill length for hummingbirds
-tabu=unique(tab[,c("hummingbird_num","bill_length")])
+tabu=unique(tab[,c("hummingbird_num","culmen_length")])
 names(tabu)=paste0(names(tabu),"u")
 tabu=tabu[order(tabu$hummingbird_numu),]
 
@@ -113,10 +115,10 @@ model{
 
 # Barrier assessment
 for(j in 1:Nbirds){
-match_infer[j] ~ dnorm(bill_lengthu[j],1/(0.2*bill_lengthu[j]*0.2*bill_lengthu[j]))T(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
-#match_infer[j] ~ dunif(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
-barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.3*bill_lengthu[j]*0.3*bill_lengthu[j]))T(max(bill_lengthu[j],match_infer[j]),2*bill_lengthu[j])
-#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
+match_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.2*culmen_lengthu[j]*0.2*culmen_lengthu[j]))T(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+#match_infer[j] ~ dunif(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_lengthu[j]))T(max(culmen_lengthu[j],match_infer[j]),2*culmen_lengthu[j])
+#barrier_infer[j] ~ dunif(culmen_lengthu[j],2*culmen_lengthu[j])
 }
 
 # Process model

@@ -12,10 +12,10 @@ model{
 
 # Barrier assessment
 for(j in 1:Nbirds){
-match_infer[j] ~ dnorm(bill_lengthu[j],1/(0.2*bill_lengthu[j]*0.2*bill_lengthu[j]))T(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
-#match_infer[j] ~ dunif(0.5*bill_lengthu[j],1.5*bill_lengthu[j])
-barrier_infer[j] ~ dnorm(bill_lengthu[j],1/(0.3*bill_lengthu[j]*0.3*bill_lengthu[j]))T(max(bill_lengthu[j],match_infer[j]),2*bill_lengthu[j])
-#barrier_infer[j] ~ dunif(bill_lengthu[j],2*bill_lengthu[j])
+match_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.2*culmen_lengthu[j]*0.2*culmen_lengthu[j]))T(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+#match_infer[j] ~ dunif(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_lengthu[j]))T(max(culmen_lengthu[j],match_infer[j]),2*culmen_lengthu[j])
+#barrier_infer[j] ~ dunif(culmen_lengthu[j],2*culmen_lengthu[j])
 }
 
 # Process model

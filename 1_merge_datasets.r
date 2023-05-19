@@ -47,12 +47,13 @@ library(inlabru)
 library("inlaVP")
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2023-02-28"
+EPHI_version="2023-05-08"
 
-for(pays in c("Costa-Rica","Ecuador")){
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
 dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Interactions_data_",pays,".txt"),na.strings = c("",NA))
+dat[dat==""]=NA
 dat$date=as.IDate(dat$date,"%Y/%m/%d") #be sure date columns is recognize as date
 #LOAD CAMERA INFORMATION:
 cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
@@ -127,11 +128,17 @@ wmean <- function(v,z) {
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_",EPHI_version,"/Hummingbird_traits.txt"),na.strings = c("",NA))
 tr$tail_length=as.numeric(as.character(tr$tail_length))
 tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),tail_length=wmean(tail_length,N))
+model=lm(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
+tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
+predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_",EPHI_version,"/Plant_traits.txt"),na.strings = c("",NA))
 tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>% summarise(Tube_length=mean(Tube_length*10,na.rm=T),Anther_length=mean(Anther_length*10,na.rm=T), Stigma_length=mean(Stigma_length*10,na.rm=T),
 Opening_corrolla=mean(Opening_corrolla,na.rm=T),Curvature_middle=mean(Curvature_middle,na.rm=T),Type=getmode(Type),sexualsys=getmode(SexualSystem))
+
+length(unique(tr2$plant_species[tr2$plant_species %in% dat$plant_species]))
+length(unique(dat$plant_species))
 
 #MERGE TRAITS AND DATA
 tab=merge(tab,tr1,by=c("hummingbird_species"),all.x=TRUE,all.y=FALSE)
