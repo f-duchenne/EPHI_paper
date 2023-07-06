@@ -5,8 +5,6 @@ setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 ######################################################################################################
 ######################################################################################################
 
-### Model template as follows - ensure this is syntactically correct before running the model!
-
 model_string="
 model{
 
@@ -16,21 +14,23 @@ match_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.2*culmen_lengthu[j]*0.2*culmen_len
 #match_infer[j] ~ dunif(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
 barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_lengthu[j]))T(max(culmen_lengthu[j],match_infer[j]),2*culmen_lengthu[j])
 #barrier_infer[j] ~ dunif(culmen_lengthu[j],2*culmen_lengthu[j])
+for(z in 1:Nplants){
+	#new variable:
+	barrier_var[z,j] <- ifelse(Tube_lengthp[z] > barrier_infer[j], 1, 0)
+	# Zero inflation / trait barrier:
+	logit(pz[z,j]) <- Interceptpz + traitBarrier * barrier_var[z,j]
+	Z[z,j] ~ dbern(min(pz[z,j]+0.00000000000000001,0.9999999999999999))
+}
 }
 
 # Process model
 for(i in 1:N){
-	#new variables:
-	barrier_var[i] <- ifelse(Tube_length[i] > barrier_infer[hummingbird_num[i]], 1, 0)
+	#new variable:
 	mismatch_var[i] <- abs(Tube_length[i]-match_infer[hummingbird_num[i]])
-	
-	# Zero inflation:
-	logit(pz[i]) <- Interceptpz + traitBarrier * barrier_var[i]
-	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
 	
 	# Interaction frequency:
 	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i] +plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
-	p[i] <- r/(r+(lambda[i] * Z[i]))
+	p[i] <- r/(r+(lambda[i] * Z[plant_num[i],hummingbird_num[i]]))
 	Yfreq_r[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
 	#Yfreq_r[i] ~ dpois(lambda[i] * Z[i] + 0.00000000000000001)
 	
@@ -88,7 +88,7 @@ r ~ dnegbin(0.2,4)
 }
 "
 
-writeLines(model_string,con="model_free.txt")
+writeLines(model_string,con="model.txt")
 
 ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect","temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec")
 

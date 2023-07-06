@@ -73,10 +73,6 @@ tab$site <- factor(tab$site)
 tab$group <- factor(rep(1, nrow(tab)))
 tab$hummingbird_species_site=paste0(tab$hummingbird_species,tab$site)
 
-#EVENTUALLY ROUND INTERACTION FREQUENCIES
-tab$Yfreq_r=round(tab$Yfreq)
-
-
 #convert factors to numerical indices for JAGS:
 tab$hummingbird_species_site_num=as.numeric(as.factor(tab$hummingbird_species_site))
 tab$hummingbird_num=as.numeric(as.factor(tab$hummingbird_species))
@@ -88,6 +84,11 @@ tab$num_time=as.numeric(as.factor(tab$num_time)) #rescale this factor to start a
 tabu=unique(tab[,c("hummingbird_num","culmen_length")])
 names(tabu)=paste0(names(tabu),"u")
 tabu=tabu[order(tabu$hummingbird_numu),]
+
+#create a table with corolla length for plants
+# tabp=unique(tab[,c("plant_num","Tube_length")])
+# names(tabp)=paste0(names(tabp),"p")
+# tabp=tabp[order(tabu$plant_nump),]
 
 sites=unique(tab[,c("site","site_num","midpoint_Longitude","midpoint_Latitude")])
 sites=sites[order(sites$site_num),]
@@ -103,17 +104,15 @@ save(dat,file=paste0("data_formodel_",pays,".RData"))
 }
 
 ######################################################################################################
-######################################################################################################
+#####################################################################dat#################################
 #### JAGS model file written by runjags version 2.2.0-2 on 2021-11-23 15:22:45 
 ######################################################################################################
 ######################################################################################################
 
-### Model template as follows - ensure this is syntactically correct before running the model!
-
 model_string="
 model{
 
-# Barrier assessment
+# Inferring barrier and optimal corolla length for each hummingbird species
 for(j in 1:Nbirds){
 match_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.2*culmen_lengthu[j]*0.2*culmen_lengthu[j]))T(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
 #match_infer[j] ~ dunif(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
@@ -121,31 +120,30 @@ barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_l
 #barrier_infer[j] ~ dunif(culmen_lengthu[j],2*culmen_lengthu[j])
 }
 
-# Process model
+# Model
 for(i in 1:N){
-	#new variables:
+	#new variable:
 	barrier_var[i] <- ifelse(Tube_length[i] > barrier_infer[hummingbird_num[i]], 1, 0)
 	mismatch_var[i] <- abs(Tube_length[i]-match_infer[hummingbird_num[i]])
-	
-	# Zero inflation:
+	# Zero inflation / trait barrier:
 	logit(pz[i]) <- Interceptpz + traitBarrier * barrier_var[i]
 	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
 	
 	# Interaction frequency:
-	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i] +plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
+	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i]+samp*duration_sampling_hours[i]+
+	plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
 	p[i] <- r/(r+(lambda[i] * Z[i]))
-	Yfreq_r[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
-	#Yfreq_r[i] ~ dpois(lambda[i] * Z[i] + 0.00000000000000001)
-	
+	Y[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
 }
 
 # PRIORS FIXED EFFECTS:
-Interceptpz <- 10
+Interceptpz ~ dnorm(0, 0.5)
 Intercept ~ dnorm(0, 0.01) 
 traitMismatch ~ dnorm(0, 0.01)T(,0)
 pheno ~ dnorm(0, 0.01)
 abond ~ dnorm(0, 0.01)
-traitBarrier ~ dunif(-20,0)
+samp ~ dnorm(0, 0.01)
+traitBarrier ~ dnorm(0, 0.5)T(,0)
 
 # PRIORS RANDOM EFFECTS:
 #spatial autocorrelation:
@@ -191,14 +189,11 @@ r ~ dnegbin(0.2,4)
 }
 "
 
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 writeLines(model_string,con="model.txt")
 
-
-
-
-
-
-ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect","temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec")
+ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect",
+"temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec","samp")
 
 Inits <- function(){list()}
 
@@ -207,7 +202,7 @@ results1 <- jags(model.file="model.txt", parameters.to.save=ParsStage, n.chains=
 t2=Sys.time()
 t2-t1
 
-save(results1,file=paste0("chain_model_",j,".RData"))
+save(results1,file=paste0("chain_model_ZI",j,".RData"))
 #
 
 
