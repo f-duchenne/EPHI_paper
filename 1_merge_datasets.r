@@ -88,14 +88,9 @@ dat=merge(dat,transects,by=c("site","month","year","plant_species"),all.x=T,all.
 dim(dat)
 #add site data:
 dim(dat)
-dat=merge(dat,sites,by=c("site"),all=F)
+dat=merge(dat,sites,by=c("site"),all=FALSE)
 dim(dat)
 
-#remove piercing interactions:
-dat$piercing[is.na(dat$piercing)]="no"
-dim(dat)
-dat=subset(dat,piercing!="yes")
-dim(dat)
 dat=subset(dat,year(start_date)<=2022)
 
 #Duration from picture when non-available from cameras
@@ -103,10 +98,14 @@ dat$duration_sampling_hours[is.na(dat$duration_sampling_hours)]=dat$duration_fro
 dat=subset(dat,duration_sampling_hours>=5 & camera_problem!="yes")
 
 #### CALCULATE INTERACTION FREQUENCIES
-tab=dat %>% dplyr::group_by(hummingbird_species,plant_species,waypoint,duration_sampling_hours,site,month,year,abond_flower,midpoint_Longitude,midpoint_Latitude,min_transect_elev,Country) %>% dplyr::summarise(Y=length(time[piercing!="yes"])) #number of interaction detected
+tab=dat %>% dplyr::group_by(hummingbird_species,plant_species,waypoint,duration_sampling_hours,site,month,year,abond_flower,
+midpoint_Longitude,midpoint_Latitude,min_transect_elev,Country) %>% dplyr::summarise(Y=length(time[piercing!="yes"]),Y_pierc=length(time)) #number of interaction detected
+total_inter=sum(tab$Y_pierc)
 #### INFER ZEROS
-mat=dcast(tab,site+year+month+waypoint+plant_species+duration_sampling_hours+abond_flower+midpoint_Longitude+midpoint_Latitude+min_transect_elev+Country~hummingbird_species,value.var="Y",fill=0)
-tab=melt(mat,id.vars=c("site","year","month","waypoint","plant_species","duration_sampling_hours","abond_flower","midpoint_Longitude","midpoint_Latitude","min_transect_elev","Country"),variable.name="hummingbird_species",value.name="Y")
+mat=dcast(tab,site+year+month+waypoint+plant_species+duration_sampling_hours+abond_flower+midpoint_Longitude+
+midpoint_Latitude+min_transect_elev+Country~hummingbird_species,value.var="Y",fill=0)
+tab=melt(mat,id.vars=c("site","year","month","waypoint","plant_species","duration_sampling_hours",
+"abond_flower","midpoint_Longitude","midpoint_Latitude","min_transect_elev","Country"),variable.name="hummingbird_species",value.name="Y")
 # CALCULATE TOTAL ABUNDANCE OF HUMMINGBIRDS PER SITES:
 tab=tab %>% dplyr::group_by(hummingbird_species,site) %>% dplyr::mutate(abond_total_h=sum(Y)) #number of interaction detected
 #REMOVE HUMMINGBIRDS THAT ARE TOTALLY ABSENT FROM ONE SITE:
@@ -131,7 +130,8 @@ wmean <- function(v,z) {
 #LOAD HUMMINGBIRD TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_",EPHI_version,"/Hummingbird_traits.txt"),na.strings = c("",NA))
 tr$tail_length=as.numeric(as.character(tr$tail_length))
-tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),tail_length=wmean(tail_length,N))
+tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),
+tail_length=wmean(tail_length,N))
 model=lm(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
 tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
 predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
@@ -178,9 +178,10 @@ tab=merge(tab,phenoh,by=c("site","month","hummingbird_species"),all.x=T,all.y=F)
 dim(tab)
 tab=merge(tab,phenop[,c("site","month","plant_species","phenop")],by=c("site","month","plant_species"),all.x=T,all.y=F)
 dim(tab)
+tab$total_inter=total_inter
 
 #### EMPIRICAL NETWORKS
-emp_net=dat %>% dplyr::group_by(hummingbird_species,plant_species,site) %>% dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
+emp_net=tab %>% dplyr::group_by(hummingbird_species,plant_species,site,min_transect_elev,culmen_length,Tube_length) %>% dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
 emp_net$Y=emp_net$Y*12
 emp_net=subset(emp_net,!is.na(hummingbird_species))
 fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
@@ -188,4 +189,36 @@ fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
 #EXPORT DATASET
 fwrite(tab,paste0("data_for_analyses_",pays,".txt"))
 }
+
+tabf=NULL
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
+tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
+#### CALCULATE TRAIT MATCHING:
+tab$mismatch=abs(tab$Tube_length-tab$culmen_length) #trait mismatch
+tab$elev=scale(tab$min_transect_elev)
+
+#### CALCULATE PHENOLOGICAL MATCHING:
+tab$phenomatch=tab$phenoh*tab$phenop
+
+#ABONDANCE FLOWER THAT ARE NA ARE NON DETECTED PLANT ON THE TRANSECT, set a low abundance value:
+tab$abond_flower[is.na(tab$abond_flower) | tab$abond_flower==0]=1
+tab$abond_flower_log=log(tab$abond_flower)
+
+unique(tab$site)
+tabf=rbind(tabf,tab)
+}
+
+sum(unique(tabf$total_inter))
+sum(unique(tabf$total_inter))-sum(tabf$Y)
+length(unique(tabf$hummingbird_species))
+length(unique(tabf$plant_species))
+
+tabf=subset(tabf,!is.na(mismatch))
+sum(tabf$Y)
+sum(unique(tabf$total_inter))
+length(unique(tabf$hummingbird_species))
+length(unique(tabf$plant_species))
+
+
+
 

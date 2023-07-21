@@ -1,4 +1,4 @@
-predict_model=function(data,chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,year,nb_net){
+predict_model=function(data,chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,year,nb_net,duration){
 
 ##### NEED TO HAVE THE DATA FROM THE MODEL LOAD
 
@@ -71,7 +71,6 @@ if(length(which(is.na(temp_num)))>0){stop("Some month-year were not in the origi
 
 
 
-
 x=sample(1:nrow(chains),nsampling,replace=T)
 
 if(type %in% c("barrier","total")){
@@ -88,7 +87,7 @@ print("No values provided for barrier, use latent ones")
 
 proba=matrix(inv.logit(intercept_proba+barrier_var*chains[x,paste0("traitBarrier")]),nrow=nsampling)
 proba_suma=data.frame(site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,mismatch=mismatch,barrier=barrier,
-average_proba=apply(proba,2,mean),median_proba=apply(proba,2,median),lwr_proba=apply(proba,2,quantile,prob=0.025),upr_proba=apply(proba,2,quantile,prob=0.975))
+average_proba=apply(proba,2,mean),median_proba=apply(proba,2,median),lwr_proba=apply(proba,2,quantile,prob=0.025),upr_proba=apply(proba,2,quantile,prob=0.975),duration=duration)
 }
 
 
@@ -107,6 +106,7 @@ print("No values provided for mismatch, use latent ones")
 }
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=chains[x,"pheno"]*t(replicate(nsampling,pheno))}
+if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=chains[x,"samp"]*t(replicate(nsampling,duration))}
 if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=rand_comb(plant_num,"plant_effect")
@@ -116,7 +116,7 @@ if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effe
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=rand_comb(bird_site_num,"sitebird_effect")}
 
 
-lambda_log=matrix(intercept+chains[x,"traitMismatch"]*mismatch_var+phen+abd+plt+si+tem+bsi,nrow=nsampling)
+lambda_log=matrix(intercept+chains[x,"traitMismatch"]*mismatch_var+phen+dura+abd+plt+si+tem+bsi,nrow=nsampling)
 p=chains[x,"r"]/(chains[x,"r"]+exp(lambda_log))
 
 		
@@ -128,7 +128,7 @@ frequencies=matrix(rnbinom(ncol(p)*nrow(p),size=chains[x,"r"],prob=p),nrow=nsamp
 
 freq_suma=data.frame(site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,abond=abond,mismatch=mismatch,barrier=barrier,month=month,year=year,
 average_lambda=apply(exp(lambda_log)*Z,2,mean),lwr_lambda=apply(exp(lambda_log)*Z,2,quantile,prob=0.025),upr_lambda=apply(exp(lambda_log)*Z,2,quantile,prob=0.975),average_freq=apply(frequencies,2,mean),
-median_freq=apply(frequencies,2,median),lwr_freq=apply(frequencies,2,quantile,prob=0.025),upr_freq=apply(frequencies,2,quantile,prob=0.975))
+median_freq=apply(frequencies,2,median),lwr_freq=apply(frequencies,2,quantile,prob=0.025),upr_freq=apply(frequencies,2,quantile,prob=0.975),duration=duration)
 }
 
 
@@ -160,6 +160,7 @@ print("No values provided for mismatch, use latent ones")
 }
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=mean(chains[,"pheno"])*t(replicate(1,pheno))}
+if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=mean(chains[,"samp"])*t(replicate(1,duration))}
 if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=apply(chains[,paste0("plant_effect[",plant_num,"]")],2,mean)
@@ -169,14 +170,14 @@ if(is.na(site[1]) | !("site" %in% random_effects)){si=0}else{si=apply(chains[,pa
 if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effects)){tem=0}else{tem=apply(chains[,paste0("temp_effect[",site_num,",",temp_num,"]")],2,mean)}
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=apply(chains[,paste0("sitebird_effect[",bird_site_num,"]")],2,mean)}
 
-lambda_log=t(mean(chains[,paste0("Intercept")])+mean(chains[,"traitMismatch"])*mismatch_var+phen+abd+plt+si+tem+bsi)
+lambda_log=t(mean(chains[,paste0("Intercept")])+mean(chains[,"traitMismatch"])*mismatch_var+phen+dura+abd+plt+si+tem+bsi)
 
 
 networks=NULL
 for(j in 1:nb_net){
 bin_link$binary=rbinom(nrow(bin_link),1,bin_link$average_proba)
 network=data.frame(essai=j,site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,abond=abond,mismatch=mismatch,barrier=barrier,
-month=month,year=year)
+month=month,year=year,duration=duration)
 network=merge(network,bin_link,by=c("plant_species","hummingbird_species"))
 network$freq=exp(lambda_log)
 networks=rbind(networks,network)
