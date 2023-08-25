@@ -47,8 +47,8 @@ library(inlabru)
 library("inlaVP")
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2023-07-04"
-
+EPHI_version="2023-08-23"
+data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
 dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Interactions_data_",pays,".txt"),na.strings = c("",NA))
@@ -101,6 +101,8 @@ dat=subset(dat,duration_sampling_hours>=5 & camera_problem!="yes")
 tab=dat %>% dplyr::group_by(hummingbird_species,plant_species,waypoint,duration_sampling_hours,site,month,year,abond_flower,
 midpoint_Longitude,midpoint_Latitude,min_transect_elev,Country) %>% dplyr::summarise(Y=length(time[piercing!="yes"]),Y_pierc=length(time)) #number of interaction detected
 total_inter=sum(tab$Y_pierc)
+data_desc=data.frame(country=pays,nb_inter=sum(tab$Y),nb_inter_pierc=sum(tab$Y_pierc))
+data_descf=rbind(data_descf,data_desc)
 #### INFER ZEROS
 mat=dcast(tab,site+year+month+waypoint+plant_species+duration_sampling_hours+abond_flower+midpoint_Longitude+
 midpoint_Latitude+min_transect_elev+Country~hummingbird_species,value.var="Y",fill=0)
@@ -138,8 +140,10 @@ predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_",EPHI_version,"/Plant_traits.txt"),na.strings = c("",NA))
-tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>% summarise(Tube_length=mean(Tube_length*10,na.rm=T),Anther_length=mean(Anther_length*10,na.rm=T), Stigma_length=mean(Stigma_length*10,na.rm=T),
-Opening_corrolla=mean(Opening_corrolla,na.rm=T),Curvature_middle=mean(Curvature_middle,na.rm=T),Type=getmode(Type),sexualsys=getmode(SexualSystem))
+tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>%
+summarise(Tubelength=mean(Tubelength*10,na.rm=T),StamenLength=mean(StamenLength*10,na.rm=T),
+StyleLength=mean(StyleLength*10,na.rm=T),Opening_corolla_lateral=mean(Opening_corolla_lateral,na.rm=T),
+CurvatureCentral=mean(CurvatureCentral,na.rm=T),FlowerType=getmode(FlowerType),sexualsys=getmode(SexualSystem))
 
 length(unique(tr2$plant_species[tr2$plant_species %in% dat$plant_species]))
 length(unique(dat$plant_species))
@@ -160,16 +164,16 @@ phenoh$phenoh[is.na(phenoh$phenoh)]=0
 #plant phenologies based on transects
 plant_res=merge(plant_for_res,transects,by=c("plant_species","month","year","site"),all=T)
 plant_res$abond_flower[is.na(plant_res$abond_flower)]=1
-plant_res=merge(plant_res,tr2[,c("plant_species","Tube_length")],by=c("plant_species"),all.x=T)
+plant_res=merge(plant_res,tr2[,c("plant_species","Tubelength")],by=c("plant_species"),all.x=T)
 plant_res=subset(plant_res,!is.na(plant_species))
 plant_res=plant_res %>% group_by(site) %>% mutate(n_visits=length(unique(paste(month,year))))
 plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower)/n_visits)
 
-phenop=plant_res %>% group_by(plant_species,site,month,Tube_length,abond_flower_moy) %>% summarise(value=sum(abond_flower))
+phenop=plant_res %>% group_by(plant_species,site,month,Tubelength,abond_flower_moy) %>% summarise(value=sum(abond_flower))
 bidon=expand.grid(month=1:12,site=unique(phenop$site))
 phenop=merge(phenop,bidon,by=c("site","month"))
 phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value))
-phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tube_length) %>% summarise(phenop=value/sumpheno)
+phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tubelength) %>% summarise(phenop=value/sumpheno)
 fwrite(phenop,paste0("plants_per_site_per_month_",pays,".txt"))
 
 
@@ -181,7 +185,8 @@ dim(tab)
 tab$total_inter=total_inter
 
 #### EMPIRICAL NETWORKS
-emp_net=tab %>% dplyr::group_by(hummingbird_species,plant_species,site,min_transect_elev,culmen_length,Tube_length) %>% dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
+emp_net=tab %>% dplyr::group_by(hummingbird_species,plant_species,site,min_transect_elev,culmen_length,Tubelength) %>%
+dplyr::summarise(Y=length(time)/sum(duration_sampling_hours[!duplicated(waypoint)])) #number of interaction detected
 emp_net$Y=emp_net$Y*12
 emp_net=subset(emp_net,!is.na(hummingbird_species))
 fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
@@ -189,12 +194,19 @@ fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
 #EXPORT DATASET
 fwrite(tab,paste0("data_for_analyses_",pays,".txt"))
 }
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+fwrite(data_descf,"nb_data.csv")
+
+
+
 
 tabf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
+
 tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
+
 #### CALCULATE TRAIT MATCHING:
-tab$mismatch=abs(tab$Tube_length-tab$culmen_length) #trait mismatch
+tab$mismatch=abs(tab$Tubelength-tab$culmen_length) #trait mismatch
 tab$elev=scale(tab$min_transect_elev)
 
 #### CALCULATE PHENOLOGICAL MATCHING:
@@ -205,20 +217,11 @@ tab$abond_flower[is.na(tab$abond_flower) | tab$abond_flower==0]=1
 tab$abond_flower_log=log(tab$abond_flower)
 
 unique(tab$site)
+#REMOVE DATA WITHOUT TRAITS
+tab=subset(tab,!is.na(mismatch))
+unique(tab$site)
 tabf=rbind(tabf,tab)
 }
-
-sum(unique(tabf$total_inter))
-sum(unique(tabf$total_inter))-sum(tabf$Y)
-length(unique(tabf$hummingbird_species))
 length(unique(tabf$plant_species))
-
-tabf=subset(tabf,!is.na(mismatch))
+length(unique(tabf$hummingbird_species))
 sum(tabf$Y)
-sum(unique(tabf$total_inter))
-length(unique(tabf$hummingbird_species))
-length(unique(tabf$plant_species))
-
-
-
-

@@ -39,14 +39,14 @@ load("chain_model_Ecuador_1.RData")
 model1=results1
 load("chain_model_Ecuador_2.RData")
 model2=results1
-#load("chain_model_Ecuador_3.RData")
-#model3=results1
+load("chain_model_Ecuador_3.RData")
+model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
-#obj3=as.mcmc(model3)
-plot(mcmc.list(obj1,obj2)[,"Intercept"])
+obj3=as.mcmc(model3)
+plot(mcmc.list(obj1,obj2,obj3)[,"Intercept"])
 #combine chains and get a summary:
-mco_ec <- mcmcOutput(mcmc.list(obj1,obj2))
+mco_ec <- mcmcOutput(mcmc.list(obj1,obj2,obj3))
 suma_ec=summary(mco_ec)
 suma_ec$varia=rownames(suma_ec)
 

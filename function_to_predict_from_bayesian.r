@@ -147,6 +147,7 @@ print("No values provided for barrier, use latent ones")
 }
 
 bin_link$average_proba=inv.logit(t(mean(chains[,paste0("Interceptpz")])+barrier_var*mean(chains[,paste0("traitBarrier")])))
+bin_link$average_proba_without_barrier=inv.logit(mean(chains[,paste0("Interceptpz")]))
 
 ###FREQ
 if(is.na(trait_plant[1]) & is.na(mismatch[1])){stop("please provide either values for mismatch either for plant trait")}

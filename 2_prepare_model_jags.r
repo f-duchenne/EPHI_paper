@@ -53,7 +53,7 @@ for(pays in c("Costa-Rica","Ecuador","Brazil")){
 tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
 
 #### CALCULATE TRAIT MATCHING:
-tab$mismatch=abs(tab$Tube_length-tab$culmen_length) #trait mismatch
+tab$mismatch=abs(tab$Tubelength-tab$culmen_length) #trait mismatch
 tab$elev=scale(tab$min_transect_elev)
 
 #### CALCULATE PHENOLOGICAL MATCHING:
@@ -86,7 +86,7 @@ names(tabu)=paste0(names(tabu),"u")
 tabu=tabu[order(tabu$hummingbird_numu),]
 
 #create a table with corolla length for plants
-# tabp=unique(tab[,c("plant_num","Tube_length")])
+# tabp=unique(tab[,c("plant_num","Tubelength")])
 # names(tabp)=paste0(names(tabp),"p")
 # tabp=tabp[order(tabu$plant_nump),]
 
@@ -123,8 +123,8 @@ barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_l
 # Model
 for(i in 1:N){
 	#new variable:
-	barrier_var[i] <- ifelse(Tube_length[i] > barrier_infer[hummingbird_num[i]], 1, 0)
-	mismatch_var[i] <- abs(Tube_length[i]-match_infer[hummingbird_num[i]])
+	barrier_var[i] <- ifelse(Tubelength[i] > barrier_infer[hummingbird_num[i]], 1, 0)
+	mismatch_var[i] <- abs(Tubelength[i]-match_infer[hummingbird_num[i]])
 	# Zero inflation / trait barrier:
 	logit(pz[i]) <- Interceptpz + traitBarrier * barrier_var[i]
 	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
