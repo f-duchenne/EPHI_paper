@@ -9,7 +9,8 @@ library(pastecs)
 library(ggplot2)
 library(cowplot)
 library(gridExtra)
-library(scales) 
+library(scales)
+
 
 #Costa Rica
 load("data_formodel_Costa-Rica.RData")
@@ -25,6 +26,8 @@ obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
 obj3=as.mcmc(model3)
 plot(mcmc.list(obj1,obj3,obj2)[,"Intercept"])
+plot(mcmc.list(obj1,obj3,obj2)[,"traitBarrier"])
+plot(mcmc.list(obj1,obj3,obj2)[,"traitMismatch"])
 #combine chains and get a summary:
 mco_cr <- mcmcOutput(mcmc.list(obj1,obj2,obj3))
 suma_cr=summary(mco_cr)
@@ -214,7 +217,7 @@ humm_table=merge(pred_L1,pred_L2,by=c("hummingbird_numu","Country"))
 humm_table=merge(humm_table,table,by=c("hummingbird_numu","Country"))
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/")
-fwrite(humm_table,"humm_table.txt")
+data.table::fwrite(humm_table,"humm_table.txt")
 
 
 
@@ -233,17 +236,3 @@ fwrite(humm_table,"humm_table.txt")
 
 
 
-
-
-
-load("chain_model_binary_1.RData")
-model1=results1
-load("chain_model_binary_2.RData")
-model2=results1
-obj1=as.mcmc(model1)
-obj2=as.mcmc(model2)
-plot(mcmc.list(obj1,obj2)[,"Intercept"])
-#combine chains and get a summary:
-mco_free <- mcmcOutput(mcmc.list(obj1,obj2))
-suma_free=summary(mco_free)
-suma_free$varia=rownames(suma_free)

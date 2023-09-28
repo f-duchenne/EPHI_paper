@@ -40,13 +40,13 @@ if(!is.na(random_effects[1]) & any(!(random_effects %in% c("site","plant","bird_
 
 
 #convert discrete variables to numerical index
-bidon=unique(as.data.frame(dat[c("hummingbird_num","hummingbird_species")]))
+bidon=unique(as.data.frame(data[c("hummingbird_num","hummingbird_species")]))
 if(!is.na(bird[1])){
 bird_num=bidon$hummingbird_num[match(bird,bidon$hummingbird_species)]
 if(length(which(is.na(bird_num)))>0){stop("Some birds were not in the original data")}
 }
 
-bidon=unique(as.data.frame(dat[c("plant_num","plant_species")]))
+bidon=unique(as.data.frame(data[c("plant_num","plant_species")]))
 if(!is.na(plant[1])){
 plant_num=bidon$plant_num[match(plant,bidon$plant_species)]
 plant_dontfit=which(is.na(plant_num))
@@ -54,16 +54,16 @@ plant_num[plant_dontfit]=1
 if(length(plant_dontfit)>0){print("Some plants were not in the original data, random effect set to zero for those species")}
 }
 
-bidon=unique(as.data.frame(dat[c("site_num","site")]))
+bidon=unique(as.data.frame(data[c("site_num","site")]))
 if(!is.na(site[1])){
 site_num=bidon$site_num[match(site,bidon$site)]
 if(length(which(is.na(site_num)))>0){stop("Some sites were not in the original data")}
 }
 
-bidon=unique(as.data.frame(dat[c("hummingbird_species_site_num","hummingbird_species_site")]))
+bidon=unique(as.data.frame(data[c("hummingbird_species_site_num","hummingbird_species_site")]))
 if(!is.na(site[1]) & !is.na(bird[1])){bird_site_num=bidon$hummingbird_species_site_num[match(paste0(bird,site),bidon$hummingbird_species_site)]}
 
-bidon=unique(as.data.frame(dat[c("num_time","month","year")]))
+bidon=unique(as.data.frame(data[c("num_time","month","year")]))
 if(!is.na(month[1]) & !is.na(year[1])){
 temp_num=bidon$num_time[match(paste(month,year),paste(bidon$month,bidon$year))]
 if(length(which(is.na(temp_num)))>0){stop("Some month-year were not in the original data")}
@@ -89,8 +89,6 @@ proba=matrix(inv.logit(intercept_proba+barrier_var*chains[x,paste0("traitBarrier
 proba_suma=data.frame(site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,mismatch=mismatch,barrier=barrier,
 average_proba=apply(proba,2,mean),median_proba=apply(proba,2,median),lwr_proba=apply(proba,2,quantile,prob=0.025),upr_proba=apply(proba,2,quantile,prob=0.975),duration=duration)
 }
-
-
 
 
 if(type %in% c("frequency","total")){
@@ -177,7 +175,8 @@ lambda_log=t(mean(chains[,paste0("Intercept")])+mean(chains[,"traitMismatch"])*m
 networks=NULL
 for(j in 1:nb_net){
 bin_link$binary=rbinom(nrow(bin_link),1,bin_link$average_proba)
-network=data.frame(essai=j,site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,abond=abond,mismatch=mismatch,barrier=barrier,
+network=data.frame(essai=j,site=site,hummingbird_species=bird,plant_species=plant,Tube_length=trait_plant,pheno=pheno,
+abond=abond,mismatch=mismatch,barrier=barrier,
 month=month,year=year,duration=duration)
 network=merge(network,bin_link,by=c("plant_species","hummingbird_species"))
 network$freq=exp(lambda_log)

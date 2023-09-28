@@ -329,7 +329,7 @@ l$curv[l$Predictor=="prop_forbidden" & l$Response=="roblogit"]=4.3
 g <- graph.data.frame(l, directed=T)
 g= g %>% set_edge_attr("color", value =l$colo)
 g= g %>% set_vertex_attr("name", value =
-c("Species Richness","Porpotion of\nforbidden links","Np/Nh",
+c("Species Richness","Proportion of\nforbidden links","Np/Nh",
 paste0("Connectance\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Clog"],")"),
 paste0("Nestedness\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="N"],")"),
 paste0("Modularity\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Mlogit"],")"),

@@ -47,7 +47,7 @@ library(inlabru)
 library("inlaVP")
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2023-08-23"
+EPHI_version="2023-08-24"
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
@@ -132,16 +132,16 @@ wmean <- function(v,z) {
 #LOAD HUMMINGBIRD TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_",EPHI_version,"/Hummingbird_traits.txt"),na.strings = c("",NA))
 tr$tail_length=as.numeric(as.character(tr$tail_length))
-tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),
+tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(nindh=length(culmen_length[!is.na(culmen_length)]),bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),
 tail_length=wmean(tail_length,N))
-model=lm(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
+model=lmer(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
 tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
 predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
 tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_",EPHI_version,"/Plant_traits.txt"),na.strings = c("",NA))
 tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>%
-summarise(Tubelength=mean(Tubelength*10,na.rm=T),StamenLength=mean(StamenLength*10,na.rm=T),
+summarise(nindp=length(Tubelength[!is.na(Tubelength)]),Tubelength=mean(Tubelength*10,na.rm=T),StamenLength=mean(StamenLength*10,na.rm=T),
 StyleLength=mean(StyleLength*10,na.rm=T),Opening_corolla_lateral=mean(Opening_corolla_lateral,na.rm=T),
 CurvatureCentral=mean(CurvatureCentral,na.rm=T),FlowerType=getmode(FlowerType),sexualsys=getmode(SexualSystem))
 
@@ -168,12 +168,13 @@ plant_res=merge(plant_res,tr2[,c("plant_species","Tubelength")],by=c("plant_spec
 plant_res=subset(plant_res,!is.na(plant_species))
 plant_res=plant_res %>% group_by(site) %>% mutate(n_visits=length(unique(paste(month,year))))
 plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower)/n_visits)
-
-phenop=plant_res %>% group_by(plant_species,site,month,Tubelength,abond_flower_moy) %>% summarise(value=sum(abond_flower))
-bidon=expand.grid(month=1:12,site=unique(phenop$site))
-phenop=merge(phenop,bidon,by=c("site","month"))
+subset(plant_res,plant_species=="Thibaudia inflata")
+phenop=dcast(plant_res,plant_species+site+Tubelength+abond_flower_moy~month,value.var="abond_flower",fun.aggregate=sum)
+phenop=melt(phenop,id.vars=c("plant_species","site","Tubelength","abond_flower_moy"),variable.name = "month")
+phenop$value[is.na(phenop$value)]=0
 phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value))
 phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tubelength) %>% summarise(phenop=value/sumpheno)
+
 fwrite(phenop,paste0("plants_per_site_per_month_",pays,".txt"))
 
 
@@ -201,8 +202,10 @@ fwrite(data_descf,"nb_data.csv")
 
 
 tabf=NULL
+b=0
+lili=list()
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
-
+b=b+1
 tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
 
 #### CALCULATE TRAIT MATCHING:
@@ -219,9 +222,18 @@ tab$abond_flower_log=log(tab$abond_flower)
 unique(tab$site)
 #REMOVE DATA WITHOUT TRAITS
 tab=subset(tab,!is.na(mismatch))
+lili[[b]]=unique(tab$hummingbird_species)
 unique(tab$site)
 tabf=rbind(tabf,tab)
+
 }
+lili=na.omit(lili)
+length(intersect(lili[[1]],lili[[2]]))
+length(intersect(lili[[3]],lili[[2]]))
+length(intersect(lili[[3]],lili[[1]]))
+
 length(unique(tabf$plant_species))
 length(unique(tabf$hummingbird_species))
 sum(tabf$Y)
+summary(tabf$nindp[!duplicated(tabf$plant_species)])
+summary(tabf$nindh[!duplicated(tabf$hummingbird_species)])

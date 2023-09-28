@@ -97,8 +97,8 @@ theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = e
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
 strip.background = element_blank())+
 scale_color_manual(values=c("darkorchid4","chartreuse4"))+scale_fill_manual(values=c("darkorchid4","chartreuse4"))+ggtitle("a")+labs(color="",fill="")+
-scale_linetype_manual(values=c("dashed","solid"))+guides(linetype="none")+facet_wrap(~facet)#+
-#scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+annotation_logticks(sides ="l")
+scale_linetype_manual(values=c("dashed","solid"))+guides(linetype="none")+facet_wrap(~facet)+
+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))
 
 pl1b=ggplot()+
 geom_density(data=bf,aes(x=trait,col=min_transect_elev,fill=min_transect_elev,group=min_transect_elev),alpha=0.1)+
@@ -115,7 +115,8 @@ pl1b
 dev.off();
 
 ####Panel b
-forb=as.data.frame(ini_net %>% group_by(site,min_transect_elev,Country) %>% summarise(compl=mean(-1*abs(trait_plant-match_infer)),prop_forbidden=mean(average_proba_without_barrier-average_proba),
+forb=as.data.frame(ini_net %>% group_by(site,min_transect_elev,Country) %>%
+summarise(compl=mean(-1*abs(trait_plant-match_infer)),prop_forbidden=mean(average_proba_without_barrier-average_proba),
 nbh=length(unique(hummingbird_species)),nbp=length(unique(plant_species))))
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 fwrite(forb,"network_match_barrier.txt")
