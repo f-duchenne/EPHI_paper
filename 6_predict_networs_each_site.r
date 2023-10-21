@@ -57,7 +57,7 @@ summarise(pheno_predict=sum(phenoh*phenop,na.rm=T)/12)
 pre1=predict_model(data=dat,chains=mco,nsampling=5000,site=tab2$site,bird=tab2$hummingbird_species,
 plant=tab2$plant_species,trait_plant=tab2$Tubelength,mismatch=NA,barrier=NA,
 pheno=tab2$pheno_predict,abond=rep(10,nrow(tab2)),type="network",
-random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=NA)
+random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(1000,nrow(tab2)))
 pre1$barrier="with forbidden links"
 pre1$inter=pre1$freq*pre1$average_proba
 

@@ -1,4 +1,5 @@
-predict_model=function(data,chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,year,nb_net,duration){
+predict_model=function(data,chains,nsampling,site,bird,plant,trait_plant,mismatch,barrier,pheno,abond,type,random_effects,month,
+year,nb_net,duration){
 
 ##### NEED TO HAVE THE DATA FROM THE MODEL LOAD
 
@@ -180,6 +181,7 @@ abond=abond,mismatch=mismatch,barrier=barrier,
 month=month,year=year,duration=duration)
 network=merge(network,bin_link,by=c("plant_species","hummingbird_species"))
 network$freq=exp(lambda_log)
+network$size_param=mean(chains[,"r"])
 networks=rbind(networks,network)
 }
 }

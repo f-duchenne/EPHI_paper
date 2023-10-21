@@ -3,8 +3,6 @@ library(reshape2)
 library(bipartite)
 library(data.table)
 
-EPHI_version="2023-07-04"
-
 setwd(dir="/home/duchenne/EPHI_paper/robust_data_res/")
 
 # Collect command arguments
