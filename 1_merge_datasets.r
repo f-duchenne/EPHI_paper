@@ -48,12 +48,33 @@ library("inlaVP")
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
 EPHI_version="2023-08-24"
+sitef=NULL
+
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
+#LOAD SITE METADATA:
+sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sitef=rbind(sitef,sites)
+cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
+cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date
+cameras$start_date=as.IDate(cameras$start_date,"%Y/%m/%d") #be sure date columns is recognize as date
+cameras$month=month(cameras$start_date) #extract month from date column
+cameras$year=year(cameras$start_date) #extract year from date column
+cameras=subset(cameras,year<2023)
+cameraf=rbind(cameraf,cameras)
+
+fwrite(sitef,"sites_EPHI.csv")
+sitef %>% group_by(Country) %>% summarise(min(min_transect_elev),max(max_transect_elev))
+
+merge(subset(cameraf,!is.na(plant_species)),sitef,by="site") %>% group_by(Country) %>% summarise(sum(duration_sampling_hours,na.rm=T),length(unique(plant_species)))
+
+EPHI_version="2023-08-24"
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
 dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Interactions_data_",pays,".txt"),na.strings = c("",NA))
 dat[dat==""]=NA
 dat$date=as.IDate(dat$date,"%Y/%m/%d") #be sure date columns is recognize as date
+dat$piercing[is.na(dat$piercing)]="no"
 #LOAD CAMERA INFORMATION:
 cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
 cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date

@@ -130,7 +130,7 @@ for(i in 1:N){
 	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
 	
 	# Interaction frequency:
-	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i]+samp*duration_sampling_hours[i]+
+	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i]+samp*log(duration_sampling_hours[i])+
 	plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
 	p[i] <- r/(r+(lambda[i] * Z[i]))
 	Y[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
@@ -206,3 +206,87 @@ save(results1,file=paste0("chain_model_ZI",j,".RData"))
 #
 
 
+################ MODEL 2
+
+model_string="
+model{
+
+# Inferring barrier and optimal corolla length for each hummingbird species
+for(j in 1:Nbirds){
+match_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.2*culmen_lengthu[j]*0.2*culmen_lengthu[j]))T(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+#match_infer[j] ~ dunif(0.5*culmen_lengthu[j],1.5*culmen_lengthu[j])
+barrier_infer[j] ~ dnorm(culmen_lengthu[j],1/(0.3*culmen_lengthu[j]*0.3*culmen_lengthu[j]))T(max(culmen_lengthu[j],match_infer[j]),2*culmen_lengthu[j])
+#barrier_infer[j] ~ dunif(culmen_lengthu[j],2*culmen_lengthu[j])
+}
+
+# Model
+for(i in 1:N){
+	#new variable:
+	barrier_var[i] <- ifelse(Tubelength[i] > barrier_infer[hummingbird_num[i]], 1, 0)
+	mismatch_var[i] <- abs(Tubelength[i]-match_infer[hummingbird_num[i]])
+	# Zero inflation / trait barrier:
+	logit(pz[i]) <- Interceptpz + Interceptpz_r[site_num[i]] + traitBarrier* barrier_var[i]
+	Z[i] ~ dbern(min(pz[i]+0.00000000000000001,0.9999999999999999))
+	
+	# Interaction frequency:
+	log(lambda[i]) <- Intercept + traitMismatch * mismatch_var[i] + pheno * phenoh[i]+abond *abond_flower_log[i]+samp*log(duration_sampling_hours[i])+
+	plant_effect[plant_num[i]]+site_effect[site_num[i]]+temp_effect[site_num[i],num_time[i]]+sitebird_effect[hummingbird_species_site_num[i]]
+	p[i] <- r/(r+(lambda[i] * Z[i]))
+	Y[i] ~ dnegbin(min(p[i]+0.00000000000000001,0.9999999999999999),r)
+}
+
+# PRIORS FIXED EFFECTS:
+Intercept ~ dnorm(0, 0.01)
+Interceptpz ~ dnorm(0, 0.5) 
+traitMismatch ~ dnorm(0, 0.01)T(,0)
+pheno ~ dnorm(0, 0.01)
+abond ~ dnorm(0, 0.01)
+samp ~ dnorm(0, 0.01)
+traitBarrier ~ dnorm(0, 0.5)T(,0)
+
+# PRIORS RANDOM EFFECTS:
+#spatial autocorrelation:
+edec ~ dgamma(3, 0.1)
+for(j in 1:Nsite){
+for(i in 1:Nsite){
+D.covar[i,j] <- exp(-edec*Distance[i,j])
+}}
+
+site_effect[1:Nsite] ~ dmnorm.vcov(rep(0,Nsite), spatialvariance * D.covar[1:Nsite,1:Nsite])
+spatialvariance=sd.site * sd.site
+
+for(i in 1:Nsite){
+Interceptpz_r[i] ~ dnorm(0, 0.01)
+temp_effect[i,1] ~ dnorm(0, tau.temp)
+for(j in 2:Ntemp){
+temp_effect[i,j] ~ dnorm(temp_effect[i,(j-1)], tau.temp)
+}
+}
+
+for(j in 1:Nbird_site){
+sitebird_effect[j] ~ dnorm(0, tau.bird)
+}
+
+for(j in 1:Nplants){
+plant_effect[j] ~ dnorm(0, tau.plant)
+}
+tau.plant <- 1/(sd.plant * sd.plant)
+sd.plant ~ dt(0, 1, 1)T(0,)
+
+#hyperpriors:
+tau.site<- 1/(sd.site * sd.site)
+sd.site ~ dt(0, 1, 1)T(0,)
+tau.temp<- 1/(sd.temp * sd.temp)
+sd.temp ~ dt(0, 1, 1)T(0,)
+tau.bird=1/(sd.bird * sd.bird)
+sd.bird ~ dt(0, 1, 1)T(0,)
+
+
+# PRIOR OVERDISPERTION:
+r ~ dnegbin(0.2,4)
+
+}
+"
+
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+writeLines(model_string,con="model2.txt")

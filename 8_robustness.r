@@ -181,7 +181,7 @@ theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = e
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
 strip.background=element_rect(fill=NA,color=NA),legend.position="none")+
 labs(col="")+ggtitle("a")+ylab("Persistence")+xlab("Fraction of plant species removed")+
-scale_color_manual(values=c("#30343F","#89023E"))+scale_fill_manual(values=c("#30343F","#89023E"))+
+scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
 scale_x_continuous(n.breaks=2,labels = scales::number_format(accuracy = 1))
 
 
@@ -189,93 +189,103 @@ scale_x_continuous(n.breaks=2,labels = scales::number_format(accuracy = 1))
 b2=subset(b,rank2!=0 & rank2<1) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,C,N,M,
 prop_forbidden,symmetrie) %>%
 summarise(robustness=sum(persistence)/length(persistence))
+b2=b2 %>% group_by(site,scenario,r) %>% mutate(pers_eff=(robustness[barrier=="with forbidden links"]-robustness[barrier=="no forbidden links"])/robustness[barrier=="no forbidden links"])
 b2=b2 %>% group_by(Country) %>%
 mutate(divemax=max(nbp+nbh),low_forbidden=min(prop_forbidden[barrier=="with forbidden links"]),symmetrie_max=max(symmetrie))
 
-model=glm(robustness~poly(min_transect_elev,2)*barrier*as.factor(Country),data=subset(b2,scenario=="generalists first" & r==1),family=quasibinomial)
-AIC(model)
-pre=ggpredict(model,c("min_transect_elev[10:3410]","barrier","Country"))
-names(pre)[names(pre) %in% c("group","facet")]=c("barrier","Country")
-lims=b2 %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
-pre=merge(pre,lims,by="Country")
-pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
-b2$dive=(b2$nbh+b2$nbp)/b2$divemax
+# model=glm(robustness~poly(min_transect_elev,2)*barrier*as.factor(Country),data=subset(b2,scenario=="generalists first" & r==1),family=quasibinomial)
+# AIC(model)
+# pre=ggpredict(model,c("min_transect_elev[10:3410]","barrier","Country"))
+# names(pre)[names(pre) %in% c("group","facet")]=c("barrier","Country")
+# lims=b2 %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
+# pre=merge(pre,lims,by="Country")
+# pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
+# b2$dive=(b2$nbh+b2$nbp)/b2$divemax
 
-pl2=ggplot()+
-geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=barrier),alpha=0.2)+
-geom_line(data=pre,aes(x=x,y=predicted,col=barrier),size=1.3)+
-geom_point(data=subset(b2,scenario=="generalists first" & r==1),
-aes(y=robustness,x=min_transect_elev,col=barrier,fill=barrier),size=1.5)+
-geom_vline(data=subset(b2,scenario=="generalists first" & r==1 & symmetrie==symmetrie_max),
-aes(xintercept=min_transect_elev),col="darkgrey",linetype="dotdash")+
-geom_vline(data=subset(b2,scenario=="generalists first" & r==1 & prop_forbidden==low_forbidden),
-aes(xintercept=min_transect_elev),col="lightpink",linetype="dashed")+
+# pl2=ggplot()+
+# geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=barrier),alpha=0.2)+
+# geom_line(data=pre,aes(x=x,y=predicted,col=barrier),size=1.3)+
+# geom_point(data=subset(b2,scenario=="generalists first" & r==1),
+# aes(y=robustness,x=min_transect_elev,col=barrier,fill=barrier),size=1.5)+
+# geom_vline(data=subset(b2,scenario=="generalists first" & r==1 & symmetrie==symmetrie_max),
+# aes(xintercept=min_transect_elev),col="darkgrey",linetype="dotdash")+
+# geom_vline(data=subset(b2,scenario=="generalists first" & r==1 & prop_forbidden==low_forbidden),
+# aes(xintercept=min_transect_elev),col="lightpink",linetype="dashed")+
+# theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+# panel.grid.minor = element_blank(),
+# panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
+# strip.background=element_blank(),legend.position="bottom")+
+# labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("Elevation (meters above sea level)")+
+# scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
+# facet_wrap(~Country)
+
+bidon=subset(b2,scenario=="generalists first" & r==1,select=c("barrier","robustness","site","Country"))
+pl2=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
+   color = "barrier", line.color = "gray", line.size = 0.4,
+   palette = "npg")+
+ stat_compare_means(paired = TRUE,size = 3,label.x.npc="left",aes(label = paste0("p = ",round(as.numeric(..p.format..),digits=3))))+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
+strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
+labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
+scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
+facet_wrap(~Country)
+
+
+couleurs=c("#679436","#0B4F6C","deeppink")
+
+pl3=ggplot(data=subset(b2,scenario=="generalists first" & r==1 & barrier=="with forbidden links"),
+aes(y=pers_eff,x=prop_forbidden,col=Country,shape=Country))+
+geom_point(size=1.5)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
 strip.background=element_blank(),legend.position="bottom")+
-labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("Elevation (meters above sea level)")+
-scale_color_manual(values=c("#30343F","#89023E"))+scale_fill_manual(values=c("#30343F","#89023E"))+
-facet_wrap(~Country)
+labs(col="",fill="",shape="")+ggtitle("c")+ylab("Effect of forbidden links\non robustness")+xlab("Proportion of forbidden links")+
+scale_color_manual(values=couleurs)+scale_y_continuous(labels = scales::percent_format())
 
+bas=plot_grid(pl2,pl3,align="hv",ncol=2,rel_widths=c(1,1.2))
 
-grid.arrange(pl1,pl2,ncol=2)
+grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
+
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
 pdf("Figure_4.pdf", width=7,height=8)
-grid.arrange(pl1,pl2,ncol=1,heights=c(1.2,1))
+grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 dev.off();
 
-tabtab=expand.grid(unique(b2$r),unique(b2$scenario))
-pref=NULL
-for(i in 1:nrow(tabtab)){
-model=glm(robustness~poly(min_transect_elev,2)*as.factor(barrier)*as.factor(Country),
-data=subset(b2,r==tabtab$Var1[i] & scenario==tabtab$Var2[i]),family=quasibinomial)
-AIC(model)
-pre=ggpredict(model,c("min_transect_elev[10:3410]","barrier","Country"))
-names(pre)[names(pre) %in% c("group","facet","panel")]=c("barrier","Country")
-lims=b2 %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
-pre=merge(pre,lims,by="Country")
-pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
-pre$r=tabtab$Var1[i]
-pre$scenario=tabtab$Var2[i]
-pref=rbind(pref,pre)
-}
 
 
-figs1=ggplot()+
-geom_ribbon(data=subset(pref,scenario=="generalists first"),
-aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=barrier),alpha=0.2)+
-geom_line(data=subset(pref,scenario=="generalists first"),aes(x=x,y=predicted,col=barrier),size=1.3)+
-geom_point(data=subset(b2,scenario=="generalists first"),
-aes(y=robustness,x=min_transect_elev,col=barrier,fill=barrier),size=1.5)+
-theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+wilcox.test(subset(b2,scenario=="generalists first" & barrier=="no forbidden links" & r==2 & Country=="Brazil")$robustness,
+subset(b2,scenario=="generalists first" & barrier=="with forbidden links" & r==2 & Country=="Brazil")$robustness,paired=T)
+
+bidon=subset(b2,scenario=="generalists first")
+figs1=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
+   color = "barrier", line.color = "gray", line.size = 0.4,
+   palette = "npg")+
+ stat_compare_means(paired = TRUE,size = 2.5,vjust=0.3)+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
-strip.background=element_rect(fill=NA,color=NA),plot.subtitle=element_text(size=12,hjust = 0.5))+
-labs(col="",fill="")+ylab("Robustness")+xlab("Elevation (meters above sea level)")+
-scale_color_manual(values=c("#30343F","#89023E"))+scale_fill_manual(values=c("#30343F","#89023E"))+
+strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
+labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
+scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
 facet_grid(rows=vars(r),cols=vars(Country),scales="free",labeller = label_bquote(rows=alpha == .(r)))+
-ggtitle(label="a",subtitle="specialists first")
+ggtitle(label="a",subtitle="generalists first")
 
-
-figs2=ggplot()+
-geom_ribbon(data=subset(pref,scenario=="specialists first"),
-aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=barrier),alpha=0.2)+
-geom_line(data=subset(pref,scenario=="specialists first"),aes(x=x,y=predicted,col=barrier),size=1.3)+
-geom_point(data=subset(b2,scenario=="specialists first"),
-aes(y=robustness,x=min_transect_elev,col=barrier,fill=barrier),size=1.5)+
-theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+bidon=subset(b2,scenario=="specialists first")
+figs2=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
+   color = "barrier", line.color = "gray", line.size = 0.4,
+   palette = "npg")+
+ stat_compare_means(paired = TRUE,size = 2.5,vjust=0.3)+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
-strip.background=element_rect(fill=NA,color=NA),plot.subtitle=element_text(size=12,hjust = 0.5))+
-labs(col="",fill="")+ylab("Robustness")+xlab("Elevation (meters above sea level)")+
-scale_color_manual(values=c("#30343F","#89023E"))+scale_fill_manual(values=c("#30343F","#89023E"))+
+strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
+labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
+scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
 facet_grid(rows=vars(r),cols=vars(Country),scales="free",labeller = label_bquote(rows=alpha == .(r)))+
 ggtitle(label="b",subtitle="specialists first")
 
-grid.arrange(figs1,figs2)
-
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-png("Figure_S3.png", width=1200,height=1300,res=150)
+png("Figure_S5.png", width=1200,height=1900,res=180)
 grid.arrange(figs1,figs2)
 dev.off();
 
@@ -295,6 +305,13 @@ deter$Country2=as.numeric(as.factor(deter$Country))
 
 deter$roblogit=logit(deter$robustness,adjust=0.01)
 
+dataplot=dcast(deter,Country+site~barrier,value.var="robustness")
+
+p <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden links",
+          color = "condition",palette = c("#30343F","#89023E"),
+		  line.color = "gray")
+# Change method
+p + stat_compare_means(paired = TRUE,method = "wilcox.test")+theme(legend.position="none")+ylab("Robustness")+facet_wrap(~Country)
 
 cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp","symmetrie")])
 
