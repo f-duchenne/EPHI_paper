@@ -1,9 +1,16 @@
-library(dplyr)
-library(reshape2)
-library(bipartite)
-library(data.table)
+###########################################
+###########################################
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis") 
 
-EPHI_version="2023-08-24"
+
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
+
+EPHI_version="2024-01-30"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
@@ -30,6 +37,7 @@ obj3=as.mcmc(model3)
 mco <- mcmcOutput(mcmc.list(obj1,obj2,obj3))
 suma=summary(mco)
 suma$varia=rownames(suma)
+
 
 #### L1 Barrier threshold
 tabu=as.data.frame(dat[c("hummingbird_numu","culmen_lengthu")])

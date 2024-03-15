@@ -1,73 +1,17 @@
 ###########################################
-library(bipartite)
-library(Rmpfr)
-library(circular)
-library(CircStats)
-library(plot3D)
-library(ggradar)
-library(ggplot2)
-library(gridExtra)
-library(data.table)
-library(dplyr)
-library(rgbif)
-library(ggforce)
-library(ggeffects)
-library(ggExtra)
-library(viridis)
-library(lme4)
-library(cowplot)
-library(scales)
-library(car)
-library(DHARMa)
-library(glmmTMB)
-library(qgraph)
-library(igraph)
-library(piecewiseSEM)
-library(randomForest)
-library(FactoMineR)
-require(factoextra)
-library("ggdendro")
-library(dendextend)
-library(ape)
-library(ggtree)
-library(ggnewscale)
-library(geiger)
-library(diversityForest)
-library(caper)
-library(phytools)
-library(ggthemes)
-library(ggplotify)
-library(ggtern)
-library(ks)
-library(sp)
-library(spatialEco)
-library(MuMIn)
-library(INLA)
-library(inlabru)
-library("inlaVP")
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4") 
+
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
+
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2023-08-24"
+EPHI_version="2024-01-30"
 sitef=NULL
-
-for(pays in c("Costa-Rica","Ecuador","Brazil")){
-#LOAD SITE METADATA:
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
-sitef=rbind(sitef,sites)
-cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
-cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date
-cameras$start_date=as.IDate(cameras$start_date,"%Y/%m/%d") #be sure date columns is recognize as date
-cameras$month=month(cameras$start_date) #extract month from date column
-cameras$year=year(cameras$start_date) #extract year from date column
-cameras=subset(cameras,year<2023)
-cameraf=rbind(cameraf,cameras)
-
-fwrite(sitef,"sites_EPHI.csv")
-sitef %>% group_by(Country) %>% summarise(min(min_transect_elev),max(max_transect_elev))
-
-merge(subset(cameraf,!is.na(plant_species)),sitef,by="site") %>% group_by(Country) %>% summarise(sum(duration_sampling_hours,na.rm=T),length(unique(plant_species)))
-
-EPHI_version="2023-08-24"
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
@@ -88,7 +32,18 @@ transects=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",E
 transects$date=as.IDate(transects$date,"%Y/%m/%d") #be sure date columns is recognize as date
 transects$month=month(transects$date) #extract month from date column
 transects$year=year(transects$date) #extract year from date column
-transects=subset(transects,!is.na(plant_species)) %>% group_by(site,year,month,plant_species) %>% summarise(abond_flower=sum(total_flowers,na.rm=T)) #calculate a total abundance per plant species per month per site
+transects=subset(transects,!is.na(plant_species)) %>% group_by(site,year,month,plant_species) %>% summarise(abond_flower=sum(total_flowers,na.rm=T),
+																								abond_plant=length(total_flowers)) #calculate a total abundance per plant species per month per site
+transects$total_flower[transects$total_flower==0]=1
+transects$combi_dates=apply(transects[,c("site","month","year")],1,paste,collapse="-")
+plant_for_res$combi_dates=apply(plant_for_res[,c("site","month","year")],1,paste,collapse="-")
+plant_for_res$duringEPHI="no"
+plant_for_res$duringEPHI[plant_for_res$combi_dates %in% transects$combi_dates]="yes"
+transects=merge(transects,plant_for_res,by=c("plant_species","month","year","site","combi_dates"),all=T)
+transects$abond_flower[is.na(transects$abond_flower) & transects$duringEPHI=="yes"]=1
+transects$abond_plant[is.na(transects$abond_plant) & transects$duringEPHI=="yes"]=1
+transectf=rbind(transectf,transects)
+
 #LOAD SITE METADATA:
 sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
@@ -155,7 +110,7 @@ tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_
 tr$tail_length=as.numeric(as.character(tr$tail_length))
 tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(nindh=length(culmen_length[!is.na(culmen_length)]),bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),
 tail_length=wmean(tail_length,N))
-model=lmer(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
+model=lm(culmen_length~bill_length,data=tr1[!is.na(tr1$bill_length) & !is.na(tr1$culmen_length),])
 tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
 predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
@@ -183,17 +138,15 @@ phenoh=phenoh %>% group_by(site,month,hummingbird_species) %>% summarise(phenoh=
 phenoh$phenoh[is.na(phenoh$phenoh)]=0
 
 #plant phenologies based on transects
-plant_res=merge(plant_for_res,transects,by=c("plant_species","month","year","site"),all=T)
-plant_res$abond_flower[is.na(plant_res$abond_flower)]=1
-plant_res=merge(plant_res,tr2[,c("plant_species","Tubelength")],by=c("plant_species"),all.x=T)
+plant_res=merge(transects,tr2[,c("plant_species","Tubelength")],by=c("plant_species"),all.x=T)
 plant_res=subset(plant_res,!is.na(plant_species))
 plant_res=plant_res %>% group_by(site) %>% mutate(n_visits=length(unique(paste(month,year))))
-plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower)/n_visits)
+plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower,na.rm=T)/n_visits,abond_plant_moy=sum(abond_plant,na.rm=T)/n_visits)
 subset(plant_res,plant_species=="Thibaudia inflata")
-phenop=dcast(plant_res,plant_species+site+Tubelength+abond_flower_moy~month,value.var="abond_flower",fun.aggregate=sum)
+phenop=dcast(plant_res,plant_species+site+Tubelength+abond_plant_moy+abond_flower_moy~month,value.var="abond_flower",fun.aggregate=sum)
 phenop=melt(phenop,id.vars=c("plant_species","site","Tubelength","abond_flower_moy"),variable.name = "month")
 phenop$value[is.na(phenop$value)]=0
-phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value))
+phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value,na.rm=T))
 phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tubelength) %>% summarise(phenop=value/sumpheno)
 
 fwrite(phenop,paste0("plants_per_site_per_month_",pays,".txt"))
@@ -218,7 +171,6 @@ fwrite(tab,paste0("data_for_analyses_",pays,".txt"))
 }
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 fwrite(data_descf,"nb_data.csv")
-
 
 
 
