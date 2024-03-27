@@ -34,7 +34,7 @@ transects$month=month(transects$date) #extract month from date column
 transects$year=year(transects$date) #extract year from date column
 transects=subset(transects,!is.na(plant_species)) %>% group_by(site,year,month,plant_species) %>% summarise(abond_flower=sum(total_flowers,na.rm=T),
 																								abond_plant=length(total_flowers)) #calculate a total abundance per plant species per month per site
-transects$total_flower[transects$total_flower==0]=1
+transects$abond_flower[transects$abond_flower==0]=1
 transects$combi_dates=apply(transects[,c("site","month","year")],1,paste,collapse="-")
 plant_for_res$combi_dates=apply(plant_for_res[,c("site","month","year")],1,paste,collapse="-")
 plant_for_res$duringEPHI="no"
@@ -42,7 +42,6 @@ plant_for_res$duringEPHI[plant_for_res$combi_dates %in% transects$combi_dates]="
 transects=merge(transects,plant_for_res,by=c("plant_species","month","year","site","combi_dates"),all=T)
 transects$abond_flower[is.na(transects$abond_flower) & transects$duringEPHI=="yes"]=1
 transects$abond_plant[is.na(transects$abond_plant) & transects$duringEPHI=="yes"]=1
-transectf=rbind(transectf,transects)
 
 #LOAD SITE METADATA:
 sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
