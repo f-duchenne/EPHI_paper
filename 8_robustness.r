@@ -91,52 +91,24 @@ fwrite(extinctionf,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 
 
 #######################################################################################################################
+###########################################
+###########################################
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","qgraph","igraph",
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","piecewiseSEM") 
+
+
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
+
+EPHI_version="2024-01-30"
+
 source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
-library(bipartite)
-library(Rmpfr)
-library(circular)
-library(CircStats)
-library(plot3D)
-library(ggradar)
-library(ggplot2)
-library(gridExtra)
-library(data.table)
-library(dplyr)
-library(rgbif)
-library(ggforce)
-library(ggeffects)
-library(ggExtra)
-library(viridis)
-library(lme4)
-library(cowplot)
-library(scales)
-library(car)
-library(DHARMa)
-library(glmmTMB)
-library(qgraph)
-library(igraph)
-library(piecewiseSEM)
-library(randomForest)
-library(FactoMineR)
-require(factoextra)
-library("ggdendro")
-library(dendextend)
-library(ape)
-library(ggtree)
-library(ggnewscale)
-library(geiger)
-library(diversityForest)
-library(caper)
-library(phytools)
-library(ggthemes)
-library(ggplotify)
-library(ggtern)
-library(ks)
-library(sp)
-library(mgcv)
-library(spatialEco)
-library(ggpubr)
-library(emmeans)
+couleurs=c("#679436","#0B4F6C","deeppink")
+
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness")
 extinctions=NULL
@@ -230,9 +202,6 @@ strip.background=element_blank(),legend.position="bottom",axis.text.x=element_te
 labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
 scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
 facet_wrap(~Country)
-
-
-couleurs=c("#679436","#0B4F6C","deeppink")
 
 pl3=ggplot(data=subset(b2,scenario=="generalists first" & r==1 & barrier=="with forbidden links"),
 aes(y=pers_eff,x=prop_forbidden,col=Country,shape=Country))+
@@ -378,46 +347,4 @@ mar=c(5,5,5,5),knot.border.color="white",curveShape=-1.2)
 dev.off();
 
 
-
-
-
-
-
-
-mult=multigroup(obj,"Country2")
-
-
-
-#######################
-b2b=dcast(b2,site+site2+Country+r+min_transect_elev+nbh+nbp+scenario~barrier,value.var="robustness")
-
-b2b$effet=b2b[,10]-b2b[,9]
-
-model=lm(effet~min_transect_elev+Country,data=subset(b2b,scenario=="generalists first" & r==1))
-AIC(model)
-pre=ggpredict(model,c("min_transect_elev[10:3410]","Country"))
-names(pre)[names(pre) %in% c("group","facet")]=c("Country")
-lims=b2 %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
-pre=merge(pre,lims,by="Country")
-pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
-
-ggplot()+
-geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=Country),alpha=0.2)+
-geom_line(data=pre,aes(x=x,y=predicted,col=Country),size=1.3)+
-geom_point(data=subset(b2b,scenario=="generalists first" & r==1) ,aes(y=effet,x=min_transect_elev,col=Country,fill=Country),size=1.5)+
-theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0))+
-labs(col="",fill="")+ggtitle("b")+ylab("Effect of forbidden links on robustness")+xlab("Elevation (meters above sea level)")
-
-scale_color_manual(values=c("#30343F","#89023E"))+scale_fill_manual(values=c("#30343F","#89023E"))+
-facet_wrap(~Country)
-
-pairs(deter[,c("min_transect_elev","prop_forbidden","compl","nbh","nbp","symmetrie")])
-cor(deter[,c("min_transect_elev","prop_forbidden","compl","nbh","nbp","symmetrie")])
-
-
-model=randomForest(robustness~prop_forbidden+compl+nbp+nbh+symmetrie,data=deter,importance=T,ntree=4000)
-varImpPlot(model)
-partialPlot(model, pred.data=deter,x.var="prop_forbidden")
-partialPlot(model, pred.data=deter,x.var="compl")
 

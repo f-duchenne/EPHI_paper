@@ -1,24 +1,21 @@
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
+###########################################
+###########################################
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz") 
+
+
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
+
+EPHI_version="2024-01-30"
+
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-library(mcmcOutput)
-library(mcmcplots)
-library(MCMCvis)
-library(ggridges)
-library(runjags)
-library(pastecs)
-library(ggplot2)
-library(cowplot)
-library(gridExtra)
-library(dplyr)
-library(reshape2)
-library(bipartite)
-library(stringr)
-library(ungeviz)
-library(data.table)
-library(doParallel)
-library(foreach)
-library(parallel)
-EPHI_version="2023-08-24"
+source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
+
 
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 load(paste0("data_formodel_",pays,".RData"))

@@ -10,7 +10,7 @@ pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-EPHI_version="2024-01-30"
+EPHI_version="2024-03-18"
 sitef=NULL
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){

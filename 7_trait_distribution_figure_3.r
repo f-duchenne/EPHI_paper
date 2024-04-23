@@ -1,51 +1,19 @@
-########################################################################
-library(bipartite)
-library(Rmpfr)
-library(circular)
-library(CircStats)
-library(plot3D)
-library(ggradar)
-library(ggplot2)
-library(gridExtra)
-library(data.table)
-library(dplyr)
-library(rgbif)
-library(ggforce)
-library(ggeffects)
-library(ggExtra)
-library(viridis)
-library(lme4)
-library(cowplot)
-library(scales)
-library(car)
-library(DHARMa)
-library(glmmTMB)
-library(qgraph)
-library(igraph)
-library(piecewiseSEM)
-library(randomForest)
-library(FactoMineR)
-require(factoextra)
-library("ggdendro")
-library(dendextend)
-library(ape)
-library(ggtree)
-library(ggnewscale)
-library(geiger)
-library(diversityForest)
-library(caper)
-library(phytools)
-library(ggthemes)
-library(ggplotify)
-library(ggtern)
-library(ks)
-library(sp)
-library(mgcv)
-library(spatialEco)
-library(ggpubr)
-library(emmeans)
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+###########################################
+###########################################
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans") 
 
+
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
+
+EPHI_version="2024-01-30"
+
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 couleurs=c("#679436","#0B4F6C","deeppink")
 
 ######################## TRAITS

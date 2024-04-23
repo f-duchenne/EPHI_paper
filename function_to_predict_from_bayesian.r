@@ -106,7 +106,7 @@ print("No values provided for mismatch, use latent ones")
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=chains[x,"pheno"]*t(replicate(nsampling,pheno))}
 if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=chains[x,"samp"]*t(replicate(nsampling,duration))}
-if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
+#if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=rand_comb(plant_num,"plant_effect")
 }
@@ -115,7 +115,7 @@ if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effe
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=rand_comb(bird_site_num,"sitebird_effect")}
 
 
-lambda_log=matrix(intercept+chains[x,"traitMismatch"]*mismatch_var+phen+dura+abd+plt+si+tem+bsi,nrow=nsampling)
+lambda_log=matrix(intercept+chains[x,"traitMismatch"]*mismatch_var+phen+dura+plt+si+tem+bsi,nrow=nsampling)
 p=chains[x,"r"]/(chains[x,"r"]+exp(lambda_log))
 
 		
@@ -161,7 +161,7 @@ print("No values provided for mismatch, use latent ones")
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=mean(chains[,"pheno"])*t(replicate(1,pheno))}
 if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=mean(chains[,"samp"])*t(replicate(1,duration))}
-if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
+#if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=apply(chains[,paste0("plant_effect[",plant_num,"]")],2,mean)
 plt[plant_dontfit]=0
@@ -170,7 +170,7 @@ if(is.na(site[1]) | !("site" %in% random_effects)){si=0}else{si=apply(chains[,pa
 if(is.na(site[1]) | is.na(month[1]) | is.na(year[1]) | !("temp" %in% random_effects)){tem=0}else{tem=apply(chains[,paste0("temp_effect[",site_num,",",temp_num,"]")],2,mean)}
 if(is.na(site[1]) | is.na(bird[1]) | !("bird_site" %in% random_effects)){bsi=0}else{bsi=apply(chains[,paste0("sitebird_effect[",bird_site_num,"]")],2,mean)}
 
-lambda_log=t(mean(chains[,paste0("Intercept")])+mean(chains[,"traitMismatch"])*mismatch_var+phen+dura+abd+plt+si+tem+bsi)
+lambda_log=t(mean(chains[,paste0("Intercept")])+mean(chains[,"traitMismatch"])*mismatch_var+phen+dura+plt+si+tem+bsi)
 
 
 networks=NULL
