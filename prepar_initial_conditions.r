@@ -15,8 +15,8 @@ setwd(dir=filepath)
 
 set.seed=i+5
 nbchains=3
-for(i in 1:3){
-pays=c("Costa-Rica","Ecuador","Brazil")[i]
+for(i in 1:1){
+pays=c("Ecuador")[i]
 
 load(paste0("chain_model_",pays,"_",1,".RData"))
 model1=results1

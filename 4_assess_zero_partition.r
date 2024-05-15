@@ -10,7 +10,7 @@ inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-01-30"
+EPHI_version="2024-03-18"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
