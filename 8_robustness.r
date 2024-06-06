@@ -3,7 +3,9 @@ library(reshape2)
 library(bipartite)
 library(data.table)
 
-setwd(dir="/home/duchenne/EPHI_paper/robust_data_res/")
+EPHI_version="2024-03-18"
+
+setwd(dir="/home/duchenne/EPHI_paper/")
 
 # Collect command arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -30,37 +32,48 @@ pre1b=pre1
 for(r in r_vec){
 for(scenario in scenarios){
 for(bar in rules){
-
 for(z in sites_vec){
+
 bidon=subset(pre1b,site==z)
+
 if(bar=="no forbidden links"){
-bidon$binary=1
-bidon$average_proba=1
+bidon$proba=bidon$average_proba_without_barrier
+}else{
+bidon$proba=bidon$average_proba
 }
-bidon$inter=bidon$freq*bidon$average_proba
+
+bidon$inter=bidon$freq*bidon$proba
+bidon$compl=-abs(bidon$Tube_length-bidon$match_infer)
+
 bidon=bidon %>% dplyr::group_by(plant_species) %>% mutate(degree=length(unique(hummingbird_species[inter>0])))
+
 if(bar=="generalists first"){bidon=bidon[order(bidon$degree,bidon$plant_species,decreasing=TRUE),]}else{
 bidon=bidon[order(bidon$degree,bidon$plant_species,decreasing=FALSE),]}
 
-prop_forbidden=mean(1-bidon$average_proba)
+prop_forbidden=mean(1-bidon$average_proba_without_barrier)-mean(1-bidon$proba)
 average_freq=mean(bidon$freq)
+compl=mean(bidon$compl)
 
 mat=dcast(bidon,plant_species~hummingbird_species,value.var="inter")
 mat=as.matrix(mat[,-1])
 C=networklevel(mat,index="weighted connectance",weighted=T)
 N=wine(mat, nreps = 1000)$wine
 M=computeModules(mat, method="Beckett")@likelihood[1]
+Cperso=length(mat[mat>=0.05*sum(mat)])/length(mat)
+vec=sort(c(mat),decreasing=T)
+vec1=vec[1:length(cumsum(vec)[cumsum(vec)<0.95*sum(vec)])]
+Cperso2=length(vec1)/length(mat)
 
 plant_list=unique(bidon$plant_species)
 extinctions=rbind(extinctions,data.frame(plant_ext=NA,hummingbird_pers=length(unique(bidon$hummingbird_species)),site=z,essai=e,r=r,
-rank=0,barrier=bar,prop_forbidden=prop_forbidden,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M))
+rank=0,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Cperso2=Cperso2))
 for(j in 1:length(plant_list)){
 ext=plant_list[j]
 if(length(unique(bidon$plant_species))>1){
 for(i in unique(bidon$hummingbird_species)){
 bidon2=subset(bidon,hummingbird_species==i)
 distances=sqrt((bidon2$compl[bidon2$plant_species==ext]-bidon2$compl[bidon2$plant_species!=ext])^2)
-R=mean(bidon2$average_proba[bidon2$plant_species!=ext]*exp(-r*distances/max(distances)))
+R=mean(bidon2$proba[bidon2$plant_species!=ext]*exp(-r*distances/max(distances)))
 
 Pext=(1-R)*bidon2$inter[bidon2$plant_species==ext]/sum(bidon2$inter)
 
@@ -72,7 +85,7 @@ if(EXT==1){bidon=subset(bidon,hummingbird_species!=i)}
 }
 bidon=subset(bidon,plant_species!=ext)
 extinctions=rbind(extinctions,data.frame(plant_ext=ext,hummingbird_pers=length(unique(bidon$hummingbird_species)),site=z,essai=e,r=r,
-rank=j,barrier=bar,prop_forbidden=prop_forbidden,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M))
+rank=j,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Cperso2=Cperso2))
 
 
 }
@@ -83,10 +96,10 @@ rank=j,barrier=bar,prop_forbidden=prop_forbidden,average_freq=average_freq,scena
 
 
 #LOAD SITE METADATA:
-extinctionf=merge(extinctionf,sites,by="site")
+extinctions=merge(extinctions,sites,by="site")
 
-setwd(dir="/home/duchenne/EPHI_paper/")
-fwrite(extinctionf,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
+setwd(dir="/home/duchenne/EPHI_paper/robust_data_res/")
+fwrite(extinctions,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 
 
 
@@ -97,14 +110,14 @@ fwrite(extinctionf,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 #+ message = FALSE
 rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","qgraph","igraph",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","piecewiseSEM") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","piecewiseSEM","car") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-01-30"
+EPHI_version="2024-03-18"
 
 source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
 couleurs=c("#679436","#0B4F6C","deeppink")
@@ -133,6 +146,7 @@ b=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,
 pers_sde=sd(hummingbird_pers)/sqrt(length(hummingbird_pers)),prop_forbidden=-1*mean(prop_forbidden),
 C=mean(C),N=mean(N),M=mean(M),compl=mean(compl),Cperso=mean(Cperso),Cperso2=mean(Cperso2))
 b$symmetrie=b$nbp/b$nbh
+
 
 ggplot()+
 geom_line(data=b,aes(y=persistence,x=rank2,col=barrier,linetype=scenario),size=1)+facet_grid(rows=vars(site),cols=vars(r))+
@@ -223,7 +237,6 @@ grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 dev.off();
 
 
-
 wilcox.test(subset(b2,scenario=="generalists first" & barrier=="no forbidden links" & r==2 & Country=="Brazil")$robustness,
 subset(b2,scenario=="generalists first" & barrier=="with forbidden links" & r==2 & Country=="Brazil")$robustness,paired=T)
 
@@ -260,11 +273,12 @@ dev.off();
 
 
 ######################################## DETERMINISM OF Robustness
+
 b3=subset(b,rank2!=0 & rank2<1) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,C,N,M,
 prop_forbidden,compl,Cperso2) %>%
 summarise(robustness=sum(persistence)/length(persistence))
 #b3=merge(b3,forb,by=c("site","min_transect_elev","Country","nbp","nbh"))
-deter=as.data.frame(subset(b3,scenario=="specialists first" & r==1))
+deter=as.data.frame(subset(b3,scenario=="generalists first" & r==1))
 deter$symmetrie=deter$nbp/deter$nbh
 deter$dive=deter$nbh+deter$nbp
 deter$Clog=deter$Cperso2
@@ -282,15 +296,15 @@ p <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden li
 # Change method
 p + stat_compare_means(paired = TRUE,method = "wilcox.test")+theme(legend.position="none")+ylab("Robustness")+facet_wrap(~Country)
 
-cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp","symmetrie")])
+cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp")])
 
-model_C=lm(Clog~dive+prop_forbidden+symmetrie,data=deter)
-model_N=lm(N~dive+prop_forbidden+Clog+symmetrie,data=deter)
-model_M=lm(Mlogit~dive+prop_forbidden+Clog+symmetrie,data=deter)
+model_C=lm(Clog~dive+prop_forbidden,data=deter)
+model_N=lm(N~dive+prop_forbidden+Clog,data=deter)
+model_M=lm(Mlogit~dive+prop_forbidden+Clog,data=deter)
 
-model_rob=lm(roblogit~dive+prop_forbidden+Clog+N+Mlogit+symmetrie,data=deter)
-
-obj <- psem(model_C,model_N,model_M,model_rob,data=as.data.frame(deter), dive %~~% symmetrie, dive %~~% prop_forbidden)
+model_rob=lm(roblogit~dive+prop_forbidden+Clog+N+Mlogit,data=deter)
+print(vif(model_rob))
+obj <- psem(model_C,model_N,model_M,model_rob,data=as.data.frame(deter), dive %~~% prop_forbidden)
 
 objb=summary(obj)
 left=0
@@ -307,20 +321,105 @@ l$colo=ifelse(l$Std.Estimate<0,"firebrick4","dodgerblue4")
 l$lty=1
 l$lty=ifelse(l$P.Value>0.05,2,l$lty)
 l$curv=NA
-l$curv[l$Predictor=="dive" & l$Response=="roblogit"]=1.7
-l$curv[l$Predictor=="symmetrie" & l$Response=="roblogit"]=-4.3
+l$curv[l$Predictor=="dive" & l$Response=="roblogit"]=-4.3
 l$curv[l$Predictor=="prop_forbidden" & l$Response=="roblogit"]=4.3
 g <- graph.data.frame(l, directed=T)
 g= g %>% set_edge_attr("color", value =l$colo)
 g= g %>% set_vertex_attr("name", value =
-c("Species Richness","Proportion of\nforbidden links","Np/Nh",
+c("Species Richness","Proportion of\nforbidden links",
 paste0("Connectance\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Clog"],")"),
 paste0("Nestedness\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="N"],")"),
 paste0("Modularity\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Mlogit"],")"),
 paste0("Robustness\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="roblogit"],")")))
 coord=data.frame(label=vertex_attr(g, "name"),
-x=c(center,right,left,center,left,right,center),
-y=c(haut,haut,haut,bas+11,bas+11,
+x=c(left,right,center,left,right,center),
+y=c(haut,haut,bas+11,bas+11,
+bas+11,bas),vsize=20)
+
+EL=as_edgelist(g)
+EL=cbind(EL,l[,3])
+asi=abs(l[,3])*echelle_fleche
+asi[asi<5]=5
+asi[asi>=15]=15
+
+
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
+pdf("Figure5.pdf", width=8,height=6)
+qgraph(EL,layout=as.matrix(coord[,c("x","y")]),edge.color=l$colo,
+border.color="white",label.cex=cex,label.scale=F,lty=l$lty,
+edge.label.cex = cex.arrows,edge.label.position=0.65,vsize2=9,vsize=coord$vsize,curve=l$curv,
+shape="rectangle",edge.labels=T,fade=F,asize=asi,
+mar=c(5,5,5,5),knot.border.color="white",curveShape=-1.2)
+dev.off();
+
+
+
+
+######################### SUPP
+pdf("Figure_S6.pdf", width=14,height=9)
+par(mfrow=c(2,3))
+for(sc in c("generalists first","specialists first")){
+for(alpha in c(0,1,2)){
+b3=subset(b,rank2!=0 & rank2<1) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,C,N,M,
+prop_forbidden,compl,Cperso2) %>%
+summarise(robustness=sum(persistence)/length(persistence))
+#b3=merge(b3,forb,by=c("site","min_transect_elev","Country","nbp","nbh"))
+deter=as.data.frame(subset(b3,scenario==sc & r==alpha))
+deter$symmetrie=deter$nbp/deter$nbh
+deter$dive=deter$nbh+deter$nbp
+deter$Clog=deter$Cperso2
+deter$Mlogit=logit(deter$M,adjust=0.01)
+deter$divelog=log(deter$dive)
+deter$Country2=as.numeric(as.factor(deter$Country))
+
+deter$roblogit=logit(deter$robustness,adjust=0.01)
+
+dataplot=dcast(deter,Country+site~barrier,value.var="robustness")
+
+p <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden links",
+          color = "condition",palette = c("#30343F","#89023E"),
+		  line.color = "gray")
+# Change method
+p + stat_compare_means(paired = TRUE,method = "wilcox.test")+theme(legend.position="none")+ylab("Robustness")+facet_wrap(~Country)
+
+cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp")])
+
+model_C=lm(Clog~dive+prop_forbidden,data=deter)
+model_N=lm(N~dive+prop_forbidden+Clog,data=deter)
+model_M=lm(Mlogit~dive+prop_forbidden+Clog,data=deter)
+
+model_rob=lm(roblogit~dive+prop_forbidden+Clog+N+Mlogit,data=deter)
+print(vif(model_rob))
+obj <- psem(model_C,model_N,model_M,model_rob,data=as.data.frame(deter), dive %~~% prop_forbidden)
+
+objb=summary(obj)
+left=0
+right=30
+center=(right-left)/2
+haut=20
+bas=0
+cex=1.5
+cex.arrows=0.7
+echelle_fleche=0.5
+l=objb$coefficients[,c("Predictor","Response","Std.Estimate","P.Value")]
+l=l[grep("~~",l$Predictor,fixed=T,invert=T),]
+l$colo=ifelse(l$Std.Estimate<0,"firebrick4","dodgerblue4")
+l$lty=1
+l$lty=ifelse(l$P.Value>0.05,2,l$lty)
+l$curv=NA
+l$curv[l$Predictor=="dive" & l$Response=="roblogit"]=-4.3
+l$curv[l$Predictor=="prop_forbidden" & l$Response=="roblogit"]=4.3
+g <- graph.data.frame(l, directed=T)
+g= g %>% set_edge_attr("color", value =l$colo)
+g= g %>% set_vertex_attr("name", value =
+c("Species Richness","Proportion of\nforbidden links",
+paste0("Connectance\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Clog"],")"),
+paste0("Nestedness\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="N"],")"),
+paste0("Modularity\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="Mlogit"],")"),
+paste0("Robustness\n(R2 = ",objb$R2$R.squared[objb$R2$Response=="roblogit"],")")))
+coord=data.frame(label=vertex_attr(g, "name"),
+x=c(left,right,center,left,right,center),
+y=c(haut,haut,bas+11,bas+11,
 bas+11,bas),vsize=20)
 
 EL=as_edgelist(g)
@@ -333,17 +432,9 @@ qgraph(EL,layout=as.matrix(coord[,c("x","y")]),edge.color=l$colo,
 border.color="white",label.cex=cex,label.scale=F,lty=l$lty,
 edge.label.cex = cex.arrows,edge.label.position=0.65,vsize2=9,vsize=coord$vsize,curve=l$curv,
 shape="rectangle",edge.labels=T,fade=F,asize=asi,
-mar=c(5,5,5,5),knot.border.color="white",curveShape=-1)
-
-
-
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure5.pdf", width=8,height=6)
-qgraph(EL,layout=as.matrix(coord[,c("x","y")]),edge.color=l$colo,
-border.color="white",label.cex=cex,label.scale=F,lty=l$lty,
-edge.label.cex = cex.arrows,edge.label.position=0.65,vsize2=9,vsize=coord$vsize,curve=l$curv,
-shape="rectangle",edge.labels=T,fade=F,asize=asi,
-mar=c(5,5,5,5),knot.border.color="white",curveShape=-1.2)
+mar=c(5,5,5,5),knot.border.color="white",curveShape=-1,title=paste(sc,alpha,sep=" - alpha = "),title.cex=2)
+}
+}
 dev.off();
 
 

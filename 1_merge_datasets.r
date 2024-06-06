@@ -143,7 +143,7 @@ plant_res=plant_res %>% group_by(site) %>% mutate(n_visits=length(unique(paste(m
 plant_res=plant_res %>% group_by(plant_species,site) %>% mutate(abond_flower_moy=sum(abond_flower,na.rm=T)/n_visits,abond_plant_moy=sum(abond_plant,na.rm=T)/n_visits)
 subset(plant_res,plant_species=="Thibaudia inflata")
 phenop=dcast(plant_res,plant_species+site+Tubelength+abond_plant_moy+abond_flower_moy~month,value.var="abond_flower",fun.aggregate=sum)
-phenop=melt(phenop,id.vars=c("plant_species","site","Tubelength","abond_flower_moy"),variable.name = "month")
+phenop=melt(phenop,id.vars=c("plant_species","site","Tubelength","abond_plant_moy","abond_flower_moy"),variable.name = "month")
 phenop$value[is.na(phenop$value)]=0
 phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value,na.rm=T))
 phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tubelength) %>% summarise(phenop=value/sumpheno)
@@ -209,3 +209,6 @@ length(unique(tabf$hummingbird_species))
 sum(tabf$Y)
 summary(tabf$nindp[!duplicated(tabf$plant_species)])
 summary(tabf$nindh[!duplicated(tabf$hummingbird_species)])
+
+
+

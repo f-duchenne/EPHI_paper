@@ -4,14 +4,14 @@
 #+ message = FALSE
 rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","ggeffects","viridis") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-01-30"
+EPHI_version="2024-03-18"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 couleurs=c("#679436","#0B4F6C","deeppink")
@@ -78,7 +78,7 @@ facet_grid(cols=vars(Country),rows=vars(type))+scale_color_viridis(option="mako"
 coord_cartesian(expand=F)
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-png("Figure_S3.png",width=1200,height=1000,res=160)
+png("Figure_S4.png",width=1200,height=1000,res=160)
 pl1b
 dev.off();
 
@@ -94,6 +94,7 @@ obj=as.data.frame(emtrends(model,specs=c("Country"),var="min_transect_elev"))
 obj$signi="no"
 obj$signi[obj$asymp.UCL<0]="yes"
 obj$signi[obj$asymp.LCL>0]="yes"
+obj$signi=factor(obj$signi,levels=c("yes","no"))
 
 
 pre=ggpredict(model,c("min_transect_elev[all]","Country"))
@@ -114,11 +115,10 @@ geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=group
 geom_line(data=pre,aes(x=x,y=predicted,col=group,linetype=signi),size=1.3)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0))+
-labs(col="",fill="")+ggtitle("b")+ylab("Propotion of forbidden links")+xlab("Elevation (m)")+
+labs(col="",fill="")+ggtitle("b")+ylab("Proportion of forbidden links")+xlab("Elevation (m)")+
 scale_color_manual(values=couleurs)+scale_fill_manual(values=couleurs)+
-scale_linetype_manual(values=c("dashed","solid"))+guides(linetype="none")
+scale_linetype_manual(values=c("solid","dashed"))+guides(linetype="none")
 
-plot_grid(pl1,pl3,ncol=1,align="hv")
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
 pdf("Figure3.pdf",width=6,height=6)

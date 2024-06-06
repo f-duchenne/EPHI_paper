@@ -34,7 +34,7 @@ return(resi)
 }
 
 ###CONTROL FOR BASIC ERRORS
-if(nsampling>10000){stop("nsampling is higher than 10000, it is too high for your fucking computer")}
+if(nsampling>20000){stop("nsampling is higher than 10000, it is too high for your fucking computer")}
 if(nsampling<100){stop("nsampling is lower than 100, it is too low to get something trustable")}
 if(!(type %in% c('barrier','frequency','total','network'))){stop("type of predict does correspond to 'barrier', 'frequency', 'total' or 'network'")}
 if(!is.na(random_effects[1]) & any(!(random_effects %in% c("site","plant","bird_site","temp")))){stop("random effects to include in predictions do not correspond to 'site','plants','bird_site' or 'temp'")}
@@ -105,7 +105,7 @@ print("No values provided for mismatch, use latent ones")
 }
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=chains[x,"pheno"]*t(replicate(nsampling,pheno))}
-if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=chains[x,"samp"]*t(replicate(nsampling,duration))}
+if(is.na(duration[1])){dura=log(12)*mean(chains[,"samp"])}else{dura=chains[x,"samp"]*t(replicate(nsampling,log(duration)))}
 #if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=chains[x,"abond"]*log(t(replicate(nsampling,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=rand_comb(plant_num,"plant_effect")
@@ -160,7 +160,7 @@ print("No values provided for mismatch, use latent ones")
 }
 
 if(is.na(pheno[1])){phen=mean(data$phenoh,na.rm=T)*mean(chains[,"pheno"])}else{phen=mean(chains[,"pheno"])*t(replicate(1,pheno))}
-if(is.na(duration[1])){dura=12*mean(chains[,"samp"])}else{dura=mean(chains[,"samp"])*t(replicate(1,duration))}
+if(is.na(duration[1])){dura=log(12)*mean(chains[,"samp"])}else{dura=mean(chains[,"samp"])*t(replicate(1,log(duration)))}
 #if(is.na(abond[1])){abd=mean(data$abond_flower_log,na.rm=T)*mean(chains[,"abond"])}else{abd=mean(chains[,"abond"])*log(t(replicate(1,abond)))}
 if(is.na(plant[1]) | !("plant" %in% random_effects)){plt=0}else{
 plt=apply(chains[,paste0("plant_effect[",plant_num,"]")],2,mean)

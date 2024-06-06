@@ -13,6 +13,7 @@ pkg_out <- lapply(pkgs, require, character.only = TRUE)
 EPHI_version="2024-03-18"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
 
 res_partition=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
@@ -46,7 +47,7 @@ tabu$barrier_infer=suma$mean[grep("barrier_infer",suma$varia)]
 tabu$match_infer=suma$mean[grep("match_infer",suma$varia)]
 tabu=merge(tabu,unique(as.data.frame(dat[c("hummingbird_species","hummingbird_num")])),by.x="hummingbird_numu",by.y="hummingbird_num")
 
-##### NETWORK FOR ROBUSTESSE
+##### ASSESS ZERO PARTITION IN THE NETWORKS
 dat$elev2=dat$elev*attr(dat$elev,"scaled:scale")+attr(dat$elev,"scaled:center")
 sitebird=unique(as.data.frame(dat[c("site","hummingbird_species","month","phenoh","elev2")]))
 tab2=merge(plant_res,sitebird,by=c("site","month"),allow.cartesian=TRUE)

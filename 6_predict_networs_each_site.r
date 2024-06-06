@@ -4,18 +4,17 @@
 #+ message = FALSE
 rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-01-30"
+EPHI_version="2024-03-18"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
-
 
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 load(paste0("data_formodel_",pays,".RData"))
@@ -54,38 +53,9 @@ summarise(pheno_predict=sum(phenoh*phenop,na.rm=T)/12)
 pre1=predict_model(data=dat,chains=mco,nsampling=5000,site=tab2$site,bird=tab2$hummingbird_species,
 plant=tab2$plant_species,trait_plant=tab2$Tubelength,mismatch=NA,barrier=NA,
 pheno=tab2$pheno_predict,abond=rep(10,nrow(tab2)),type="network",
-random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(1000,nrow(tab2)))
-pre1$barrier="with forbidden links"
-pre1$inter=pre1$freq*pre1$average_proba
-
-pre2=pre1
-pre2$barrier="no forbidden links"
-pre2$inter=pre2$freq*pre2$average_proba_without_barrier
-
-pre1=rbind(pre2,pre1)
+random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(2000,nrow(tab2)))
 
 pre1=merge(pre1,tabu,by="hummingbird_species")
-pre1$compl=-abs(pre1$Tube_length-pre1$match_infer)
-
-pre1$C=NA
-pre1$N=NA
-pre1$M=NA
-pre1$Cperso=NA
-pre1$Cperso2=NA
-for(i in unique(pre1$site)){
-bidon=subset(pre1,site==i)
-for(j in unique(bidon$barrier)){
-bidonb=subset(bidon,barrier==j)
-mat=dcast(bidonb,plant_species~hummingbird_species,value.var="inter")
-mat=as.matrix(mat[,-1])
-pre1$C[pre1$site==i & pre1$barrier==j]=networklevel(mat,index="weighted connectance",weighted=T)
-pre1$N[pre1$site==i & pre1$barrier==j]=wine(mat, nreps = 1000)$wine
-pre1$M[pre1$site==i & pre1$barrier==j]=computeModules(mat, method="Beckett")@likelihood[1]
-pre1$Cperso[pre1$site==i & pre1$barrier==j]=length(mat[mat>0.01*sum(mat)])/length(mat)
-vec=sort(c(mat),decreasing=T)
-vec1=vec[1:length(cumsum(vec)[cumsum(vec)<0.95*sum(vec)])]
-pre1$Cperso2[pre1$site==i & pre1$barrier==j]=length(vec1)/length(mat)
-}}
 
 sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
