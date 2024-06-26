@@ -14,7 +14,7 @@ pkg_out <- lapply(pkgs, require, character.only = TRUE)
 EPHI_version="2024-03-18"
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
+source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/additional scripts/function_to_predict_from_bayesian.r")
 
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 load(paste0("data_formodel_",pays,".RData"))
