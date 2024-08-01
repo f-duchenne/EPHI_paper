@@ -14,7 +14,7 @@ Script 3 used the output of the model to analyse how the proportion of zeros (mi
 
 Script 4 extracts the mechanisms (trait complementarity and exploitation barrier) from the model, to do Figure 2.
 
-Script 5 was used to predict a the interaction network for each site.
+Script 5 was used to predict the interaction network for each site.
 
 Script 6 studies how trait distributions (bill and corolla lengths) vary across sites and how it translates to proportion of forbidden links.
 
