@@ -1,4 +1,4 @@
-# DATA
+# Data
 
 Data are available here: *link to come, upon manuscript acceptance*
 
