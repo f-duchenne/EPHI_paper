@@ -122,13 +122,15 @@ pred=ggpredict(model,c("barrierbis","sitebis"))
 pred=merge(pred,unique(bidon[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
 pred$scenario=tab$Var1[i]
 pred$r=tab$Var2[i]
-predf=rbind(pred,predf)
+
 model.emm <- emmeans(model, ~ barrierbis | sitebis,typ="response")
 model.emm <- as.data.frame(contrast(model.emm, "trt.vs.ctrl", ref = "barrierbis0"))
 pred=merge(pred,model.emm,by.x="group",by.y="sitebis")
 pred$signifi="significant"
 pred$signifi[pred$p.value>0.05]="not significant"
 pred$signifi=factor(pred$signifi,levels=c("significant","not significant"))
+
+predf=rbind(pred,predf)
 
 }
 
