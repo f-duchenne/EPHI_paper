@@ -53,7 +53,7 @@ summarise(pheno_predict=sum(phenoh*phenop,na.rm=T)/12)
 pre1=predict_model(data=dat,chains=mco,nsampling=5000,site=tab2$site,bird=tab2$hummingbird_species,
 plant=tab2$plant_species,trait_plant=tab2$Tubelength,mismatch=NA,barrier=NA,
 pheno=tab2$pheno_predict,abond=rep(10,nrow(tab2)),type="network",
-random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(2000,nrow(tab2)))
+random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(12,nrow(tab2)))
 
 pre1=merge(pre1,tabu,by="hummingbird_species")
 
@@ -61,6 +61,6 @@ sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_
 sites=subset(sites,habitat!="deforested")
 pre1b=merge(pre1,sites,by="site")
 pre1b$Country=pays
-fwrite(pre1b,paste0("initial_network_",pays,".txt"))
+fwrite(pre1b,paste0("initial_network_per_day",pays,".txt"))
 }
 

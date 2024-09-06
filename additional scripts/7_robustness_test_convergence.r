@@ -119,15 +119,14 @@ pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
 EPHI_version="2024-03-18"
 
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/function_to_predict_from_bayesian.r")
 couleurs=c("#679436","#0B4F6C","deeppink")
 
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness")
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_per_day")
 extinctions=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 for(e in 1:100){
-extinctionsc=fread(paste0("robustness_simulations_",pays,"_",e,"_.txt"))
+extinctionsc=fread(paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt"))
 extinctionsc$Country=pays
 extinctions=rbind(extinctions,extinctionsc)
 }}
@@ -142,7 +141,10 @@ extinctions$site2=factor(extinctions$site2,levels=unique(extinctions$site2))
 
 extinctions$Country=gsub("-"," ",extinctions$Country,fixed=T)
 
-b=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario) %>% summarise(persistence=mean(hummingbird_pers/nbh),
+pval=NULL
+for(j in c(150,175)){
+for(i in 1:10){
+b=extinctions[extinctions$essai %in% sample(1:200,j),] %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario) %>% summarise(persistence=mean(hummingbird_pers/nbh),
 pers_sde=sd(hummingbird_pers)/sqrt(length(hummingbird_pers)),prop_forbidden=-1*mean(prop_forbidden),
 C=mean(C),N=mean(N),M=mean(M),compl=mean(compl),Cperso=mean(Cperso),Cperso2=mean(Cperso2))
 b$symmetrie=b$nbp/b$nbh
@@ -178,6 +180,14 @@ summarise(robustness=sum(persistence)/length(persistence))
 b2=b2 %>% group_by(site,scenario,r) %>% mutate(pers_eff=(robustness[barrier=="with forbidden links"]-robustness[barrier=="no forbidden links"])/robustness[barrier=="no forbidden links"])
 b2=b2 %>% group_by(Country) %>%
 mutate(divemax=max(nbp+nbh),low_forbidden=min(prop_forbidden[barrier=="with forbidden links"]),symmetrie_max=max(symmetrie))
+
+obj=wilcox.test(subset(b2,scenario=="generalists first" & barrier=="no forbidden links" & r==1 & Country=="Costa Rica")$robustness,
+subset(b2,scenario=="generalists first" & barrier=="with forbidden links" & r==1 & Country=="Costa Rica")$robustness,paired=T)
+pval=rbind(pval,data.frame(pval=obj$p.value,j=j))
+}}
+
+plot(pval~j,data=pval)
+
 
 # model=glm(robustness~poly(min_transect_elev,2)*barrier*as.factor(Country),data=subset(b2,scenario=="generalists first" & r==1),family=quasibinomial)
 # AIC(model)
@@ -232,13 +242,11 @@ bas=plot_grid(pl2,pl3,align="hv",ncol=2,rel_widths=c(1,1.2))
 grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure_4.pdf", width=7,height=8)
+pdf("Figure_4_per_day.pdf", width=7,height=8)
 grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 dev.off();
 
 
-wilcox.test(subset(b2,scenario=="generalists first" & barrier=="no forbidden links" & r==2 & Country=="Brazil")$robustness,
-subset(b2,scenario=="generalists first" & barrier=="with forbidden links" & r==2 & Country=="Brazil")$robustness,paired=T)
 
 bidon=subset(b2,scenario=="generalists first")
 figs1=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
@@ -267,7 +275,7 @@ facet_grid(rows=vars(r),cols=vars(Country),scales="free",labeller = label_bquote
 ggtitle(label="b",subtitle="specialists first")
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-png("Figure_S5.png", width=1200,height=1900,res=180)
+png("Figure_S5_per_day.png", width=1200,height=1900,res=180)
 grid.arrange(figs1,figs2)
 dev.off();
 
@@ -296,13 +304,13 @@ p <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden li
 # Change method
 p + stat_compare_means(paired = TRUE,method = "wilcox.test")+theme(legend.position="none")+ylab("Robustness")+facet_wrap(~Country)
 
-cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp")])
+cor(deter[,c("dive","prop_forbidden","compl","nbh","nbp","M","N")])
 
 model_C=lm(Clog~dive+prop_forbidden,data=deter)
 model_N=lm(N~dive+prop_forbidden+Clog,data=deter)
 model_M=lm(Mlogit~dive+prop_forbidden+Clog,data=deter)
 
-model_rob=lm(roblogit~dive+prop_forbidden+Clog+N+Mlogit,data=deter)
+model_rob=lm(roblogit~dive+prop_forbidden+Clog+N,data=deter)
 print(vif(model_rob))
 obj <- psem(model_C,model_N,model_M,model_rob,data=as.data.frame(deter), dive %~~% prop_forbidden)
 
@@ -344,7 +352,7 @@ asi[asi>=15]=15
 
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure5.pdf", width=8,height=6)
+pdf("Figure5_per_day.pdf", width=8,height=6)
 qgraph(EL,layout=as.matrix(coord[,c("x","y")]),edge.color=l$colo,
 border.color="white",label.cex=cex,label.scale=F,lty=l$lty,
 edge.label.cex = cex.arrows,edge.label.position=0.65,vsize2=9,vsize=coord$vsize,curve=l$curv,

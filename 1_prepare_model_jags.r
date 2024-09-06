@@ -166,3 +166,23 @@ t2-t1
 
 save(results1,file=paste0("chain_model_ZI",j,".RData"))
 #
+
+
+
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+plant_list=list()
+bird_list=list()
+tabf=NULL
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
+
+tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
+tabf=rbind(tabf,tab)
+plant_list[[pays]]=unique(tab$plant_species)
+bird_list[[pays]]=unique(tab$hummingbird_species)
+}
+intersect(bird_list[[1]],bird_list[[2]])
+
+site=as.data.frame(unique(tabf[,c("site","midpoint_Longitude","midpoint_Latitude","min_transect_elev","Country")]))
+site=site[order(site$Country,site$min_transect_elev),]
+
+fwrite(site,"table_S1.csv")

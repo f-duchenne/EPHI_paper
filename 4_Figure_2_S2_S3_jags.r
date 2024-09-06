@@ -79,6 +79,8 @@ suma_br$varia=rownames(suma_br)
 
 
 couleurs=c("#679436","#0B4F6C","deeppink")
+tabsp=unique(rbind(as.data.frame(dat_cr[c("hummingbird_num","hummingbird_species","Country")]),as.data.frame(dat_ec[c("hummingbird_num","hummingbird_species","Country")]),as.data.frame(dat_br[c("hummingbird_num","hummingbird_species","Country")])))
+tabsp$Country=gsub("-"," ",tabsp$Country)
 ##################### FIGURE 2 ##################
 
 ##################### Panel a ##################
@@ -215,6 +217,16 @@ tabu3=cbind(tabu3,suma_ec[grep("match_infer",suma_ec$varia),])
 tabu3$Country="Ecuador"
 
 pred_L2=rbind(tabu,tabu2,tabu3)
+names(pred_L2)[1]="hummingbird_num"
+pred_L2=merge(pred_L2,tabsp,by=c("hummingbird_num","Country"))
+
+pred_bis=pred_L2[pred_L2$hummingbird_species %in% pred_L2$hummingbird_species[duplicated(pred_L2$hummingbird_species)],]
+pred_bis=pred_bis[order(pred_bis$hummingbird_species),]
+compar1=ggplot(data=pred_bis)+geom_pointrange(aes(x=hummingbird_species,y=mean,ymax=l95,ymin=u95,color=Country))+
+geom_point(aes(x=hummingbird_species,y=culmen_lengthu),col="grey")+
+scale_color_manual(values=couleurs[-1])+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),
+plot.title=element_text(size=14,face="bold",hjust = 0),axis.text.x=element_text(angle=45,hjust=1))+xlab("Hummingbird species")+ylab("Optimal corolla length (mm)")
+
 
 nrow(subset(pred_L2,l95>culmen_lengthu | u95<culmen_lengthu))/nrow(pred_L2)
 
@@ -226,7 +238,7 @@ pl5=ggplot(data=pred_L2,aes(x=culmen_lengthu,y=mean,ymax=l95,ymin=u95,color=Coun
 geom_ribbon(data=ribb,aes(y=culmen_lengthu,ymin=ymin,ymax=ymax),fill="white",col=NA)+
 geom_abline(intercept=0,slope=1,col="black")+geom_pointrange(fatten=3,alpha=0.6,size=0.01)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),
-plot.title=element_text(size=14,face="bold",hjust = 0),legend.position="none",panel.background = element_rect(fill = "lightgrey"))+
+plot.title=element_text(size=14,face="bold",hjust = 0),legend.position="right",panel.background = element_rect(fill = "lightgrey"))+
 ylab(bquote(atop("Optimal corolla length",paste("(",italic("L2"),", in mm)"))))+
 xlab("Hummingbird bill length (mm)")+
 scale_color_manual(values=couleurs)+scale_fill_manual(values=couleurs)+
@@ -251,6 +263,15 @@ tabu3=cbind(tabu3,suma_ec[grep("barrier_infer",suma_ec$varia),])
 tabu3$Country="Ecuador"
 
 pred_L1=rbind(tabu,tabu2,tabu3)
+names(pred_L1)[1]="hummingbird_num"
+pred_L1=merge(pred_L1,tabsp,by=c("hummingbird_num","Country"))
+
+pred_bis=pred_L1[pred_L1$hummingbird_species %in% pred_L1$hummingbird_species[duplicated(pred_L2$hummingbird_species)],]
+pred_bis=pred_bis[order(pred_bis$hummingbird_species),]
+compar2=ggplot(data=pred_bis)+geom_pointrange(aes(x=hummingbird_species,y=mean,ymax=l95,ymin=u95,color=Country))+
+geom_point(aes(x=hummingbird_species,y=culmen_lengthu),col="grey")+
+scale_color_manual(values=couleurs[-1])+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),
+plot.title=element_text(size=14,face="bold",hjust = 0),axis.text.x=element_text(angle=45,hjust=1))+xlab("Hummingbird species")+ylab("Threshold for exploitation barrier (corolla length, in mm)")
 
 nrow(subset(pred_L1,l95>(culmen_lengthu+0.05*culmen_lengthu)))/nrow(pred_L1)
 
@@ -274,8 +295,14 @@ labs(col="",fill="")+ggtitle("b")+coord_cartesian(expand=F)+
               labels = trans_format("log10", math_format(10^.x)))+annotation_logticks()
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/")
-png("Figure_S2.png",width=2000,height=1000,res=300)
-plot_grid(pl5,pl6,align = "hv",ncol=2)
+leg <- ggpubr::as_ggplot(cowplot::get_legend(pl5))
+leg=leg+theme(legend.margin=margin(c(0,0,0,0)))
+pl5=pl5+theme(legend.position="none")
+
+pl=plot_grid(pl5,pl6,align = "hv",ncol=2,rel_widths=c(1,1))
+grid.arrange(pl,leg,ncol=2,widths=c(1,0.2))
+png("Figure_S2.png",width=2300,height=1000,res=300)
+grid.arrange(pl,leg,ncol=2,widths=c(1,0.2))
 dev.off();
 
 #Export table for latter
