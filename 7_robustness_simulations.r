@@ -101,7 +101,40 @@ extinctions=merge(extinctions,sites,by="site")
 setwd(dir="/home/duchenne/EPHI_paper/robust_data_res/")
 fwrite(extinctions,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 
+#######################################################################################################################
+###########################################
+###########################################
+#' Check for packages and if necessary install into library 
+#+ message = FALSE
+rm(list=ls())
+pkgs <- c("data.table", "dplyr") 
 
 
+inst <- pkgs %in% installed.packages()
+if (any(inst)) install.packages(pkgs[!inst])
+pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
+### PUT all files together
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_per_day")
+extinctions=NULL
+for(pays in c("Costa-Rica","Ecuador","Brazil")){
+for(e in 1:500){
+extinctionsc=fread(paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt"))
+extinctionsc$Country=pays
+extinctions=rbind(extinctions,extinctionsc)
+}}
 
+#some useful variables
+extinctions=extinctions %>% group_by(r,site,Country,barrier,essai,scenario) %>% mutate(nbh=max(hummingbird_pers),nbp=max(rank))
+extinctions$persistence=extinctions$hummingbird_pers/extinctions$nbh
+extinctions$rank2=extinctions$rank/extinctions$nbp
+extinctions=extinctions[order(extinctions$min_transect_elev),]
+extinctions$site=factor(extinctions$site,levels=unique(extinctions$site))
+extinctions$site2=paste0(extinctions$site," (",extinctions$min_transect_elev,"m)")
+extinctions$site2=factor(extinctions$site2,levels=unique(extinctions$site2))
+extinctions= extinctions %>% group_by(site,Country,site2,barrier) %>% mutate(prop_forbidden_m=-1*mean(prop_forbidden),C_m=mean(C),N_m=mean(N),M_m=mean(M),compl_m=mean(compl),Cperso_m=mean(Cperso),Cperso2_m=mean(Cperso2))
+
+extinctions$Country=gsub("-"," ",extinctions$Country,fixed=T)
+
+fwrite(extinctions,"C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_simulations_all.csv")
+###################

@@ -4,7 +4,7 @@
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
 rm(list=ls())
-pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","qgraph","igraph",
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","qgraph","igraph","ggeffects","DHARMa",
 			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","piecewiseSEM","car") 
 
 
@@ -16,38 +16,24 @@ EPHI_version="2024-03-18"
 
 couleurs=c("#679436","#0B4F6C","deeppink")
 
+### PUT all files together
+setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_per_day")
-extinctions=NULL
-for(pays in c("Costa-Rica","Ecuador","Brazil")){
-for(e in 1:100){
-extinctionsc=fread(paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt"))
-extinctionsc$Country=pays
-extinctions=rbind(extinctions,extinctionsc)
-}}
+extinctions=fread("robustness_simulations_all.csv")
 
-extinctions=extinctions %>% group_by(r,site,Country,barrier,essai,scenario) %>% mutate(nbh=max(hummingbird_pers),nbp=max(rank))
-extinctions$persistence=extinctions$hummingbird_pers/extinctions$nbh
-extinctions$rank2=extinctions$rank/extinctions$nbp
-extinctions=extinctions[order(extinctions$min_transect_elev),]
-extinctions$site=factor(extinctions$site,levels=unique(extinctions$site))
-extinctions$site2=paste0(extinctions$site," (",extinctions$min_transect_elev,"m)")
-extinctions$site2=factor(extinctions$site2,levels=unique(extinctions$site2))
-
-extinctions$Country=gsub("-"," ",extinctions$Country,fixed=T)
+###################
 
 #### CALCULATE PERSISTENCE FOR EACH REMAINING FRACTION OF PLANT SPECIES STEP (ATAC CURVE)
-b=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario,essai,M,prop_forbidden,C,N,Cperso,Cperso2) %>% summarise(persistence=mean(hummingbird_pers/nbh))
+b=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario,essai,prop_forbidden_m,C_m,N_m,Cperso_m,Cperso2_m) %>% summarise(persistence=mean(hummingbird_pers/nbh))
 b$symmetrie=b$nbp/b$nbh
-b2=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario) %>% summarise(persistence_mean=mean(hummingbird_pers/nbh),lower=quantile(hummingbird_pers/nbh,probs=0.025),
-higher=quantile(hummingbird_pers/nbh,probs=0.975), prop_forbidden=-1*mean(prop_forbidden),C=mean(C),N=mean(N),M=mean(M),compl=mean(compl),Cperso=mean(Cperso),Cperso2=mean(Cperso2))
-
+b2=extinctions %>% group_by(r,site,Country,site2,barrier,rank2,min_transect_elev,nbh,nbp,scenario,prop_forbidden_m,C_m,N_m,Cperso_m,Cperso2_m) %>% summarise(persistence_mean=mean(hummingbird_pers/nbh),lower=quantile(hummingbird_pers/nbh,probs=0.025),
+higher=quantile(hummingbird_pers/nbh,probs=0.975))
 
 pays="Brazil"
 
 pl1=ggplot()+
 geom_line(data=subset(b,scenario=="generalists first" & r==1 & Country==pays),
-aes(x=rank2,y=persistence,col=barrier,group=paste0(essai,r,site,barrier,scenario)),alpha=0.1)+
+aes(x=rank2,y=persistence,col=barrier,group=paste0(essai,r,site,barrier,scenario)),alpha=0.01)+
 geom_line(data=subset(b2,scenario=="generalists first" & r==1 & Country==pays),aes(y=persistence_mean,x=rank2,col=barrier),size=1.5)+facet_wrap(~site2)+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
@@ -58,43 +44,60 @@ scale_x_continuous(n.breaks=2,labels = scales::number_format(accuracy = 1))
 
 
 ### AREA UNDER ATAC CURVE (ROBUSTNESS)
-b3=subset(b,rank2!=0 & rank2<1) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,C,N,M,
-prop_forbidden,symmetrie,essai) %>%
+b3=subset(b,rank2!=0) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,prop_forbidden_m,C_m,N_m,Cperso_m,Cperso2_m,symmetrie,essai) %>%
 summarise(robustness=sum(persistence)/length(persistence))
-b3=b3 %>% group_by(site,scenario,r,essai) %>% mutate(pers_eff=(robustness[barrier=="with forbidden links"]-robustness[barrier=="no forbidden links"])/robustness[barrier=="no forbidden links"])
 
-b4=b3 %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,C,N,M,prop_forbidden,symmetrie) %>% summarise(robustness_mean=mean(robustness),sde_rob=sd(robustness)/sqrt(length(robustness)),
-pers_eff_mean=mean(robustness),sde_eff=sd(pers_eff)/sqrt(length(pers_eff)))
+bidon=subset(b3,scenario=="generalists first" & r==1)
+bidon$barrierbis=0
+bidon$barrierbis[bidon$barrier=="with forbidden links"]=1
+bidon$barrierbis=as.factor(bidon$barrierbis)
+bidon$sitebis=as.factor(bidon$site)
+model=glmmTMB(robustness~barrierbis*sitebis,data=bidon,family=beta_family(),control=glmmTMBControl(optCtrl=list(iter.max=1e5,eval.max=1e5)))
+# resi= simulateResiduals(model)
+# plot(resi)
 
 
+pred=ggpredict(model,c("barrierbis","sitebis"))
+pred=merge(pred,unique(bidon[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
 
+model.emm <- emmeans(model, ~ barrierbis | sitebis,typ="response")
 
+model.emm <- as.data.frame(contrast(model.emm, "trt.vs.ctrl", ref = "barrierbis0"))
+pred=merge(pred,model.emm,by.x="group",by.y="sitebis")
+pred$signifi="significant"
+pred$signifi[pred$p.value>0.05]="not significant"
+pred$signifi=factor(pred$signifi,levels=c("significant","not significant"))
 
-bidon=subset(b2,scenario=="generalists first" & r==1,select=c("barrier","robustness","site","Country"))
-pl2=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
-   color = "barrier", line.color = "gray", line.size = 0.4,
-   palette = "npg")+
- stat_compare_means(paired = TRUE,size = 3,label.x.npc="left",aes(label = paste0("p = ",round(as.numeric(..p.format..),digits=3))))+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(),
+dim(model.emm[model.emm$p.value<0.05 & model.emm$odds.ratio<1,])
+dim(model.emm[model.emm$p.value<0.05 & model.emm$odds.ratio>1,])
+dim(model.emm[model.emm$p.value>0.05,])
+
+pl2=ggplot(data=pred,aes(x=x,y=predicted))+
+geom_boxplot(aes(color=x))+
+geom_line(aes(linetype=signifi,group=group),show.legend = F)+
+geom_pointrange(aes(ymin=conf.low,ymax=conf.high,color=x),alpha=0.7)+
+scale_color_manual(values=c("#30343F","red"),labels = c("no forbidden links", "with forbidden links"))+
+facet_wrap(~Country)+
+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),axis.text.x=element_text(),axis.ticks.x=element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
-strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
-labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
-scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
-facet_wrap(~Country)
+strip.background=element_blank(),legend.position="bottom")+labs(col="",linetype="")+xlab("")+scale_x_discrete(labels=c("",""))
 
-pl3=ggplot(data=subset(b2,scenario=="generalists first" & r==1 & barrier=="with forbidden links"),
-aes(y=pers_eff,x=prop_forbidden,col=Country,shape=Country))+
-geom_point(size=1.5)+
+
+pl3=ggplot(data=subset(pred,x==1),
+aes(y=odds.ratio-1,x=prop_forbidden_m,col=Country,shape=Country))+
+geom_hline(yintercept=0,linetype="dashed")+
+geom_pointrange(aes(ymin=odds.ratio-1-1.96*SE,ymax=odds.ratio-1+1.96*SE))+
 theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
 strip.background=element_blank(),legend.position="bottom")+
-labs(col="",fill="",shape="")+ggtitle("c")+ylab("Effect of forbidden links\non robustness")+xlab("Proportion of forbidden links")+
-scale_color_manual(values=couleurs)+scale_y_continuous(labels = scales::percent_format())
+labs(col="",fill="",shape="")+ggtitle("c")+ylab("Effect of forbidden links\non robustness (odds ratio)")+xlab("Proportion of forbidden links")+
+scale_color_manual(values=couleurs)+scale_y_continuous()
 
 bas=plot_grid(pl2,pl3,align="hv",ncol=2,rel_widths=c(1,1.2))
 
-grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
+#grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
 pdf("Figure_4_per_day.pdf", width=7,height=8)
@@ -102,32 +105,43 @@ grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 dev.off();
 
 
-wilcox.test(subset(b2,scenario=="generalists first" & barrier=="no forbidden links" & r==2 & Country=="Brazil")$robustness,
-subset(b2,scenario=="generalists first" & barrier=="with forbidden links" & r==2 & Country=="Brazil")$robustness,paired=T)
+tab=expand.grid(c("generalists first","specialists first"),c(0,1,2))
+predf=NULL
+for(i in 1:nrow(tab)){
+bidon=subset(b3,scenario==tab$Var1[i] & r==tab$Var2[i])
+bidon$barrierbis=0
+bidon$barrierbis[bidon$barrier=="with forbidden links"]=1
+bidon$barrierbis=as.factor(bidon$barrierbis)
+bidon$sitebis=as.factor(bidon$site)
+model=glmmTMB(robustness~barrierbis*sitebis,data=bidon,family=beta_family(),control=glmmTMBControl(optCtrl=list(iter.max=1e5,eval.max=1e5)))
+# resi= simulateResiduals(model)
+# plot(resi)
 
-bidon=subset(b2,scenario=="generalists first")
-figs1=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
-   color = "barrier", line.color = "gray", line.size = 0.4,
-   palette = "npg")+
- stat_compare_means(paired = TRUE,size = 2.5,vjust=0.3)+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(),
-panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
-strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
-labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
-scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
-facet_grid(rows=vars(r),cols=vars(Country),scales="free",labeller = label_bquote(rows=alpha == .(r)))+
-ggtitle(label="a",subtitle="generalists first")
 
-bidon=subset(b2,scenario=="specialists first")
-figs2=ggpaired(bidon, x = "barrier", y = "robustness",id="site",
-   color = "barrier", line.color = "gray", line.size = 0.4,
-   palette = "npg")+
- stat_compare_means(paired = TRUE,size = 2.5,vjust=0.3)+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(),
+pred=ggpredict(model,c("barrierbis","sitebis"))
+pred=merge(pred,unique(bidon[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
+pred$scenario=tab$Var1[i]
+pred$r=tab$Var2[i]
+predf=rbind(pred,predf)
+model.emm <- emmeans(model, ~ barrierbis | sitebis,typ="response")
+model.emm <- as.data.frame(contrast(model.emm, "trt.vs.ctrl", ref = "barrierbis0"))
+pred=merge(pred,model.emm,by.x="group",by.y="sitebis")
+pred$signifi="significant"
+pred$signifi[pred$p.value>0.05]="not significant"
+pred$signifi=factor(pred$signifi,levels=c("significant","not significant"))
+
+}
+
+ggplot(data=subset(predf,scenario=="specialists first"),aes(x=x,y=predicted))+
+geom_boxplot(aes(color=x))+
+geom_line(aes(linetype=signifi,group=group),show.legend = F)+
+geom_pointrange(aes(ymin=conf.low,ymax=conf.high,color=x),alpha=0.7)+
+scale_color_manual(values=c("#30343F","red"),labels = c("no forbidden links", "with forbidden links"))+
+facet_wrap(~Country)+
+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),axis.text.x=element_text(),axis.ticks.x=element_blank(),
 panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
-strip.background=element_blank(),legend.position="bottom",axis.text.x=element_text())+
-labs(col="",fill="")+ggtitle("b")+ylab("Robustness")+xlab("")+scale_x_discrete(labels=c("",""))+
-scale_color_manual(values=c("#30343F","red"))+scale_fill_manual(values=c("#30343F","red"))+
+strip.background=element_blank(),legend.position="bottom")+labs(col="",linetype="")+xlab("")+scale_x_discrete(labels=c("",""))+
 facet_grid(rows=vars(r),cols=vars(Country),scales="free",labeller = label_bquote(rows=alpha == .(r)))+
 ggtitle(label="b",subtitle="specialists first")
 
