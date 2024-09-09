@@ -59,14 +59,12 @@ mat=as.matrix(mat[,-1])
 C=networklevel(mat,index="weighted connectance",weighted=T)
 N=wine(mat, nreps = 1000)$wine
 M=computeModules(mat, method="Beckett")@likelihood[1]
-Cperso=length(mat[mat>=0.05*sum(mat)])/length(mat)
-vec=sort(c(mat),decreasing=T)
-vec1=vec[1:length(cumsum(vec)[cumsum(vec)<0.95*sum(vec)])]
-Cperso2=length(vec1)/length(mat)
+Cperso=mean(mat)
+Inter_eve=networklevel(mat,index="interaction evenness",weighted=T)
 
 plant_list=unique(bidon$plant_species)
 extinctions=rbind(extinctions,data.frame(plant_ext=NA,hummingbird_pers=length(unique(bidon$hummingbird_species)),site=z,essai=e,r=r,
-rank=0,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Cperso2=Cperso2))
+rank=0,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Inter_eve=Inter_eve))
 for(j in 1:length(plant_list)){
 ext=plant_list[j]
 if(length(unique(bidon$plant_species))>1){
@@ -85,7 +83,7 @@ if(EXT==1){bidon=subset(bidon,hummingbird_species!=i)}
 }
 bidon=subset(bidon,plant_species!=ext)
 extinctions=rbind(extinctions,data.frame(plant_ext=ext,hummingbird_pers=length(unique(bidon$hummingbird_species)),site=z,essai=e,r=r,
-rank=j,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Cperso2=Cperso2))
+rank=j,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=average_freq,scenario=scenario,C=C,N=N,M=M,Cperso=Cperso,Inter_eve))
 
 
 }
@@ -132,7 +130,8 @@ extinctions=extinctions[order(extinctions$min_transect_elev),]
 extinctions$site=factor(extinctions$site,levels=unique(extinctions$site))
 extinctions$site2=paste0(extinctions$site," (",extinctions$min_transect_elev,"m)")
 extinctions$site2=factor(extinctions$site2,levels=unique(extinctions$site2))
-extinctions= extinctions %>% group_by(site,Country,site2,barrier) %>% mutate(prop_forbidden_m=-1*mean(prop_forbidden),C_m=mean(C),N_m=mean(N),M_m=mean(M),compl_m=mean(compl),Cperso_m=mean(Cperso),Cperso2_m=mean(Cperso2))
+extinctions= extinctions %>% group_by(site,Country,site2,barrier) %>% mutate(prop_forbidden_m=-1*mean(prop_forbidden),C_m=mean(C),N_m=mean(N),M_m=mean(M),compl_m=mean(compl),Cperso_m=mean(Cperso),
+										Inter_eve_m=mean(Inter_eve))
 
 extinctions$Country=gsub("-"," ",extinctions$Country,fixed=T)
 
