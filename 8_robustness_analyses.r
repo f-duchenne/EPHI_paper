@@ -115,7 +115,7 @@ dev.off();
 ##### FIGURE 5
 #extract predicts and effects for the other scenario
 pred3=ggpredict(model2,c("barrierbis","sitebis","alpha"))
-pred3=merge(pred3,unique(bidon2[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
+pred3=merge(pred3,unique(b3[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
 model.emm <- emmeans(model2, ~ barrierbis | sitebis + alpha,typ="response")
 
 model.emm <- as.data.frame(contrast(model.emm, "trt.vs.ctrl", ref = "barrierbis0"))
