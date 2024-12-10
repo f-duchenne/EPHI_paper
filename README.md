@@ -6,6 +6,8 @@ Data are available here: *link to come, upon manuscript acceptance*
 
 Scripts are labelled in the order they were used.
 
+Script 0 merges plant-hummingbird interaction data from different countries in one unique dataset, and merge that dataset with species traits.
+
 Script 1 prepares the data and the Bayesian model (output as a text file) for analyses.
 
 Script 2 fits the Bayesian model, for each country. It was run on a HPC plateform.
