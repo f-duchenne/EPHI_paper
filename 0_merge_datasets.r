@@ -173,6 +173,8 @@ fwrite(data_descf,"nb_data.csv")
 
 
 
+
+######### SOME CHECKS
 tabf=NULL
 b=0
 lili=list()
