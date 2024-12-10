@@ -168,7 +168,7 @@ save(results1,file=paste0("chain_model_ZI",j,".RData"))
 #
 
 
-
+############# TABLE S1
 setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 plant_list=list()
 bird_list=list()

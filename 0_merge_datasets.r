@@ -15,12 +15,12 @@ sitef=NULL
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
-dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Interactions_data_",pays,".txt"),na.strings = c("",NA))
+dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Interactions_data_",pays,".txt"),na.strings = c("",NA))
 dat[dat==""]=NA
 dat$date=as.IDate(dat$date,"%Y/%m/%d") #be sure date columns is recognize as date
 dat$piercing[is.na(dat$piercing)]="no"
 #LOAD CAMERA INFORMATION:
-cameras=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Cameras_data_",pays,".txt"),na.strings = c("",NA))
+cameras=fread(paste0("C:/Users/Duchenne/Documents//EPHI_paper/data_zenodo/Cameras_data_",pays,".txt"),na.strings = c("",NA))
 cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$start_date=as.IDate(cameras$start_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$month=month(cameras$start_date) #extract month from date column
@@ -28,7 +28,7 @@ cameras$year=year(cameras$start_date) #extract year from date column
 cameras=subset(cameras,year<2023)
 plant_for_res=unique(cameras[,c("plant_species","month","year","site")])
 #LOAD TRANSECT DATA:
-transects=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Transect_data_",pays,".txt"),na.strings = c("",NA))
+transects=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Transect_data_",pays,".txt"),na.strings = c("",NA))
 transects$date=as.IDate(transects$date,"%Y/%m/%d") #be sure date columns is recognize as date
 transects$month=month(transects$date) #extract month from date column
 transects$year=year(transects$date) #extract year from date column
@@ -44,7 +44,7 @@ transects$abond_flower[is.na(transects$abond_flower) & transects$duringEPHI=="ye
 transects$abond_plant[is.na(transects$abond_plant) & transects$duringEPHI=="yes"]=1
 
 #LOAD SITE METADATA:
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Site_metadata_",pays,".txt"),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
 
 #MERGE THEM:
@@ -114,7 +114,7 @@ tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
 predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
-tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/plant_traits_",EPHI_version,"/Plant_traits.txt"),na.strings = c("",NA))
+tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Plant_traits.txt"),na.strings = c("",NA))
 tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>%
 summarise(nindp=length(Tubelength[!is.na(Tubelength)]),Tubelength=mean(Tubelength*10,na.rm=T),StamenLength=mean(StamenLength*10,na.rm=T),
 StyleLength=mean(StyleLength*10,na.rm=T),Opening_corolla_lateral=mean(Opening_corolla_lateral,na.rm=T),
