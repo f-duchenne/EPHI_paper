@@ -20,4 +20,6 @@ Script 5 was used to predict the interaction network for each site.
 
 Script 6 studies how trait distributions (bill and corolla lengths) vary across sites and how it translates to proportion of forbidden links.
 
-Script 7 performs robustness simulations and analyse the output, to estimate the effect of forbidden links on robustness.
+Script 7 performs robustness simulations
+
+Script 8 analyses the output of robustness simulations to estimate the effect of forbidden links on robustness.
