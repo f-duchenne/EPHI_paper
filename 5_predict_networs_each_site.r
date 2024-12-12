@@ -57,7 +57,7 @@ random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(12,nrow(
 
 pre1=merge(pre1,tabu,by="hummingbird_species")
 
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Site_metadata_",pays,".txt"),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
 pre1b=merge(pre1,sites,by="site")
 pre1b$Country=pays
