@@ -113,7 +113,7 @@ here::i_am("EPHI_paper.Rproj")
 extinctions=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 for(e in 1:500){
-extinctionsc=fread(here("data_zenodo",paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt")))
+extinctionsc=fread(here("data_zenodo",paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt"))) #running this part requires to have run the first part of Script 7 on a HPC and to have transfer results to the computer
 extinctionsc$Country=pays
 extinctions=rbind(extinctions,extinctionsc)
 }}

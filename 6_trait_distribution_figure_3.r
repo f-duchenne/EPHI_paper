@@ -19,7 +19,7 @@ humm_table=fread(here("data_zenodo","humm_table.txt"))
 ini_net=NULL
 extinctions=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
-ini_netc=fread(here("data_zenodo",paste0("initial_network_",pays,".txt")))
+ini_netc=fread(here("data_zenodo",paste0("initial_network_per_day",pays,".txt")))
 ini_netc$Country=pays
 ini_net=rbind(ini_net,ini_netc)
 }

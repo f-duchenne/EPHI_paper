@@ -101,8 +101,7 @@ bas=plot_grid(pl2,pl3,align="hv",ncol=2,rel_widths=c(1,1.2))
 
 #grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure_4_per_day.pdf", width=7,height=8)
+pdf(paste0(here("figures"),"/Figure_4_per_day.pdf"), width=7,height=8)
 grid.arrange(pl1,bas,ncol=1,heights=c(1.2,1))
 dev.off();
 
@@ -123,7 +122,6 @@ pred3$scenario="specialists first"
 predf=rbind(pred,pred3) # put all the predict for both scenario in the same table
 predf=subset(predf,x==1)
 
-
 pl4=ggplot(data=predf,aes(y=odds.ratio-1,x=facet))+
 geom_hline(yintercept=0,linetype="dashed")+
 geom_boxplot(outlier.shape = NA)+
@@ -135,16 +133,14 @@ strip.background=element_blank(),legend.position="bottom")+
 labs(col="",fill="",shape="")+ggtitle("")+ylab("Effect of forbidden links\non robustness (odds ratio)")+xlab(expression(paste("Rewiring constraint ",(alpha))))+
 scale_color_manual(values=couleurs)+scale_y_continuous()+facet_wrap(~scenario,ncol=1)
 
-
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure_5_per_day.pdf", width=4,height=7)
+pdf(paste0(here("figures"),"/Figure_5_per_day.pdf"), width=4,height=7)
 pl4
 dev.off();
 
 ##### FIGURE S6
 bidon=unique(b3[,c("site","Country","prop_forbidden_m","barrierbis","barrier","Cperso_m","N_m","Inter_eve_m")])
 
-dataplot=dcast(deter,Country+site~barrier,value.var="Cperso_m")
+dataplot=dcast(bidon,Country+site~barrier,value.var="Cperso_m")
 p1 <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden links",
           color = "condition",palette = c("#30343F","#89023E"),
 		  line.color = "gray")
@@ -152,7 +148,7 @@ p1 <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden l
 p1=p1 + stat_compare_means(paired = TRUE,method = "wilcox.test")+theme(legend.position="none",strip.background=element_blank(),axis.text.x=element_text(angle=45,hjust=1),axis.title.x=element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0))+ylab("Connectance")+facet_wrap(~Country)+ggtitle("a")
 
 
-dataplot=dcast(deter,Country+site~barrier,value.var="N_m")
+dataplot=dcast(bidon,Country+site~barrier,value.var="N_m")
 p2 <- ggpaired(dataplot, cond1 = "no forbidden links", cond2 = "with forbidden links",
           color = "condition",palette = c("#30343F","#89023E"),
 		  line.color = "gray")

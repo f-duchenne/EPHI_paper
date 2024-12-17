@@ -58,6 +58,6 @@ sites=fread(here("data_zenodo",paste0("Site_metadata_",pays,".txt")),na.strings 
 sites=subset(sites,habitat!="deforested")
 pre1b=merge(pre1,sites,by="site")
 pre1b$Country=pays
-fwrite(pre1b,paste0(here("data_zenodo","initial_network_per_day",pays,".txt")))
+fwrite(pre1b,paste0(here("data_zenodo"),"/initial_network_per_day",pays,".txt"))
 }
 
