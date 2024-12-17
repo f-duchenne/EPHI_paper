@@ -1,6 +1,6 @@
 # Data
 
-Data are available here: *link to come, upon manuscript acceptance*
+The data needed to reproduce analyses are available here: 
 
 # Code
 
