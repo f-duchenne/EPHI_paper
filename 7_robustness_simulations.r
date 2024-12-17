@@ -3,9 +3,7 @@ library(reshape2)
 library(bipartite)
 library(data.table)
 
-EPHI_version="2024-03-18"
-
-setwd(dir="/home/duchenne/EPHI_paper/")
+setwd(dir="path_to_data_on_cluster") #script running on HPC, path should be adjusted for the new cluster path
 
 # Collect command arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -96,7 +94,7 @@ rank=j,barrier=bar,prop_forbidden=prop_forbidden,compl=compl,average_freq=averag
 #LOAD SITE METADATA:
 extinctions=merge(extinctions,sites,by="site")
 
-setwd(dir="/home/duchenne/EPHI_paper/robust_data_res/")
+setwd(dir="path_to_data_on_cluster/robust_data_res/")
 fwrite(extinctions,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 
 #######################################################################################################################
@@ -104,20 +102,18 @@ fwrite(extinctions,paste0("robustness_simulations_",pays,"_",e,"_.txt"))
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
-pkgs <- c("data.table", "dplyr") 
-
+pkgs <- c("data.table", "dplyr","here") 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
 ### PUT all files together
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_per_day")
+here::i_am("EPHI_paper.Rproj")
 extinctions=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 for(e in 1:500){
-extinctionsc=fread(paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt"))
+extinctionsc=fread(here("data_zenodo",paste0("robustness_simulations_per_day_",pays,"_",e,"_.txt")))
 extinctionsc$Country=pays
 extinctions=rbind(extinctions,extinctionsc)
 }}
@@ -135,5 +131,5 @@ extinctions= extinctions %>% group_by(site,Country,site2,barrier) %>% mutate(pro
 
 extinctions$Country=gsub("-"," ",extinctions$Country,fixed=T)
 
-fwrite(extinctions,"C:/Users/Duchenne/Documents/EPHI_paper/data/robustness_simulations_all.csv")
+fwrite(extinctions,paste0(here("data_zenodo"),"/robustness_simulations_all.csv")
 ###################

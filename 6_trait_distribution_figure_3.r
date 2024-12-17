@@ -2,27 +2,24 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","ggeffects","viridis") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","ggeffects","viridis","here") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-03-18"
-
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+here::i_am("EPHI_paper.Rproj")
 couleurs=c("#679436","#0B4F6C","deeppink")
 
 ######################## TRAITS
-humm_table=fread("humm_table.txt")
+humm_table=fread(here("data_zenodo","humm_table.txt"))
 
 ini_net=NULL
 extinctions=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
-ini_netc=fread(paste0("initial_network_",pays,".txt"))
+ini_netc=fread(here("data_zenodo",paste0("initial_network_",pays,".txt")))
 ini_netc$Country=pays
 ini_net=rbind(ini_net,ini_netc)
 }
@@ -77,8 +74,7 @@ ggtitle("")+labs(color="Elev.",fill="Elev.")+
 facet_grid(cols=vars(Country),rows=vars(type))+scale_color_viridis(option="mako")+scale_fill_viridis(option="mako")+
 coord_cartesian(expand=F)
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-png("Figure_S4.png",width=1200,height=1000,res=160)
+png(paste0(here("figures"),"/Figure_S4.png"),width=1200,height=1000,res=160)
 pl1b
 dev.off();
 
@@ -86,8 +82,8 @@ dev.off();
 forb=as.data.frame(ini_net %>% group_by(site,min_transect_elev,Country) %>%
 summarise(compl=mean(-1*abs(trait_plant-match_infer)),prop_forbidden=mean(average_proba_without_barrier-average_proba),
 nbh=length(unique(hummingbird_species)),nbp=length(unique(plant_species))))
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-fwrite(forb,"network_match_barrier.txt")
+
+fwrite(forb,paste0(here("data_zenodo"),"/network_match_barrier.txt"))
 
 model=glm(prop_forbidden~min_transect_elev*Country,data=forb,family=quasibinomial)
 obj=as.data.frame(emtrends(model,specs=c("Country"),var="min_transect_elev"))
@@ -120,8 +116,7 @@ scale_color_manual(values=couleurs)+scale_fill_manual(values=couleurs)+
 scale_linetype_manual(values=c("solid","dashed"))+guides(linetype="none")
 
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-pdf("Figure3.pdf",width=6,height=6)
+pdf(paste0(here("figures"),"/Figure3.pdf"),width=6,height=6)
 plot_grid(pl1,pl3,ncol=1,align="hv")
 dev.off();
 
@@ -171,8 +166,7 @@ panel.border = element_blank(),panel.background = element_blank(),plot.title=ele
 scale_color_manual(values=couleurs)+scale_fill_manual(values=couleurs)+ggtitle("b")+labs(color="",fill="")
 
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper")
-png("Figure_S1.png",width=1500,height=1000,res=160)
+png(paste0(here("figures"),"/Figure_S1.png"),width=1500,height=1000,res=160)
 grid.arrange(pl1,pl2,ncol=2,widths=c(1,1))
 dev.off();
 

@@ -1,26 +1,26 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
-pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4") 
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","here") 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+here::i_am("EPHI_paper.Rproj")
+#in the folder containing EPHI_paper.Rproj, data are in "data_zenodo" and codes in "scripts" 
 
 EPHI_version="2024-03-18"
 sitef=NULL
 data_descf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 #LOAD HUMMINGBIRD DATA FROM COSTA-RICA:
-dat=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Interactions_data_",pays,".txt"),na.strings = c("",NA))
+dat=fread(here("data_zenodo",paste0("Interactions_data_",pays,".txt")))
 dat[dat==""]=NA
 dat$date=as.IDate(dat$date,"%Y/%m/%d") #be sure date columns is recognize as date
 dat$piercing[is.na(dat$piercing)]="no"
 #LOAD CAMERA INFORMATION:
-cameras=fread(paste0("C:/Users/Duchenne/Documents//EPHI_paper/data_zenodo/Cameras_data_",pays,".txt"),na.strings = c("",NA))
+cameras=fread(here("data_zenodo",paste0("Cameras_data_",pays,".txt")),na.strings = c("",NA))
 cameras$end_date=as.IDate(cameras$end_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$start_date=as.IDate(cameras$start_date,"%Y/%m/%d") #be sure date columns is recognize as date
 cameras$month=month(cameras$start_date) #extract month from date column
@@ -28,7 +28,7 @@ cameras$year=year(cameras$start_date) #extract year from date column
 cameras=subset(cameras,year<2023)
 plant_for_res=unique(cameras[,c("plant_species","month","year","site")])
 #LOAD TRANSECT DATA:
-transects=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Transect_data_",pays,".txt"),na.strings = c("",NA))
+transects=fread(here("data_zenodo",paste0("Transect_data_",pays,".txt")),na.strings = c("",NA))
 transects$date=as.IDate(transects$date,"%Y/%m/%d") #be sure date columns is recognize as date
 transects$month=month(transects$date) #extract month from date column
 transects$year=year(transects$date) #extract year from date column
@@ -44,7 +44,7 @@ transects$abond_flower[is.na(transects$abond_flower) & transects$duringEPHI=="ye
 transects$abond_plant[is.na(transects$abond_plant) & transects$duringEPHI=="yes"]=1
 
 #LOAD SITE METADATA:
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sites=fread(here("data_zenodo",paste0("Site_metadata_",pays,".txt")),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
 
 #MERGE THEM:
@@ -105,7 +105,7 @@ wmean <- function(v,z) {
 }
 
 #LOAD HUMMINGBIRD TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
-tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_",EPHI_version,"/Hummingbird_traits.txt"),na.strings = c("",NA))
+tr=fread(here("data_zenodo","Hummingbird_traits.txt"),na.strings = c("",NA))
 tr$tail_length=as.numeric(as.character(tr$tail_length))
 tr1=tr %>% dplyr::group_by(hummingbird_species) %>% dplyr::summarise(nindh=length(culmen_length[!is.na(culmen_length)]),bill_length=wmean(bill_length,N),culmen_length=wmean(culmen_length,N),
 tail_length=wmean(tail_length,N))
@@ -114,7 +114,7 @@ tr1$culmen_length[is.na(tr1$culmen_length) & !is.na(tr1$bill_length)]=
 predict(model,newdata=tr1[is.na(tr1$culmen_length) & !is.na(tr1$bill_length),])
 
 #LOAD PLANT TRAIT DATA AND COMBINE THEM TO HAVE ONE VALUE PER SPECIES
-tr=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Plant_traits.txt"),na.strings = c("",NA))
+tr=fread(here("data_zenodo",paste0("Plant_traits.txt")),na.strings = c("",NA))
 tr2=subset(tr,!is.na(plant_species))  %>% group_by(plant_species,plant_family,plant_genus) %>%
 summarise(nindp=length(Tubelength[!is.na(Tubelength)]),Tubelength=mean(Tubelength*10,na.rm=T),StamenLength=mean(StamenLength*10,na.rm=T),
 StyleLength=mean(StyleLength*10,na.rm=T),Opening_corolla_lateral=mean(Opening_corolla_lateral,na.rm=T),
@@ -148,7 +148,7 @@ phenop$value[is.na(phenop$value)]=0
 phenop=phenop %>% group_by(plant_species,site) %>% mutate(sumpheno=sum(value,na.rm=T))
 phenop=phenop %>% group_by(site,month,plant_species,abond_flower_moy,Tubelength) %>% summarise(phenop=value/sumpheno)
 
-fwrite(phenop,paste0("plants_per_site_per_month_",pays,".txt"))
+fwrite(phenop,paste0(here("data_zenodo"),"/plants_per_site_per_month_",pays,".txt"))
 
 
 dim(tab)
@@ -166,10 +166,10 @@ emp_net=subset(emp_net,!is.na(hummingbird_species))
 fwrite(emp_net,paste0("empirical_networks_",pays,".txt"))
 
 #EXPORT DATASET
-fwrite(tab,paste0("data_for_analyses_",pays,".txt"))
+fwrite(tab,paste0(here("data_zenodo"),"/data_for_analyses_",pays,".txt"))
 }
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-fwrite(data_descf,"nb_data.csv")
+
+fwrite(data_descf,paste0(here("data_zenodo"),"/nb_data.csv"))
 
 
 

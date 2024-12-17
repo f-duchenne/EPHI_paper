@@ -2,20 +2,19 @@
 library(data.table)
 library(dplyr)
 library(R2jags)
-setwd(dir="/home/duchenne/EPHI_paper")
+setwd(dir="path_to_data_on_cluster") #script running on HPC, path should be adjusted for the new cluster path
 
 # Collect command arguments
 args <- commandArgs(trailingOnly = TRUE)
 args_contents <- strsplit(args, ' ')
 # Get first argument
-i <- as.numeric(args_contents[[1]])
+i <- as.numeric(args_contents[[1]]) #iterations happens outside of R, in the slurm scripts used to run the R script on the cluster
 
 set.seed=i+5
 nbchains=3
 lili=expand.grid(1:nbchains,c("Costa-Rica","Ecuador","Brazil"))
 
-
-load(paste0("/home/duchenne/EPHI_paper/data_formodel_",lili$Var2[i],".RData"))
+load(paste0("data_formodel_",lili$Var2[i],".RData"))
 
 ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect","temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec","samp")
 

@@ -3,23 +3,18 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","qgraph","igraph","ggeffects","DHARMa",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","mgcv","ggpubr","emmeans","piecewiseSEM","car","glmmTMB") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","mgcv","ggpubr","emmeans","piecewiseSEM","car","glmmTMB","here") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-03-18"
-
+here::i_am("EPHI_paper.Rproj")
 couleurs=c("#679436","#0B4F6C","deeppink")
 
-### PUT all files together
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-
-extinctions=fread("robustness_simulations_all.csv")
+extinctions=fread(here("data_zenodo","robustness_simulations_all.csv"))
 
 ###################
 

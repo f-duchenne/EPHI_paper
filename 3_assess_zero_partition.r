@@ -2,34 +2,32 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
-pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis") 
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","here") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-03-18"
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/additional scripts/function_to_predict_from_bayesian.r")
+here::i_am("EPHI_paper.Rproj")
+source(here("scripts/additional scripts","function_to_predict_from_bayesian.r"))
 
 res_partition=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
-load(paste0("data_formodel_",pays,".RData"))
+load(here("data_zenodo",paste0("data_formodel_",pays,".RData")))
 plant_res=fread(paste0("plants_per_site_per_month_",pays,".txt"))
 plant_res=subset(plant_res,!is.na(Tubelength))
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_data_clean/",pays,"_",EPHI_version,"/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sites=fread(here("data_zenodo",paste0("Site_metadata_",pays,".txt")),na.strings = c("",NA))
 
 
 #### conservative prior
-load(paste0("chain_model_",pays,"_1.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_1.RData")))
 model1=results1
-load(paste0("chain_model_",pays,"_2.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_2.RData")))
 model2=results1
-load(paste0("chain_model_",pays,"_3.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_3.RData")))
 model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
@@ -80,6 +78,6 @@ res_partition=rbind(res_partition,b)
 
 }
 
-fwrite(res_partition,"sparsity_estimates.txt")
+fwrite(res_partition,paste0(here("data_zenodo"),"/sparsity_estimates.txt"))
 
 ###############

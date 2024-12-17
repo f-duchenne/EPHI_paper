@@ -2,30 +2,28 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
-			"pastecs","ggplot2","cowplot","gridExtra","scales") 
+			"pastecs","ggplot2","cowplot","gridExtra","scales","here") 
 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-03-18"
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/additional scripts/function_to_predict_from_bayesian.r")
-
+here::i_am("EPHI_paper.Rproj")
+source(here("scripts/additional scripts","function_to_predict_from_bayesian.r"))
+dir.create(paste0(here(),"/figures"), showWarnings = FALSE)
 
 #Costa Rica
-load("data_formodel_Costa-Rica.RData")
+load(here("data_zenodo","data_formodel_Costa-Rica.RData"))
 dat_cr=dat
 #### free prior
-load("chain_model_Costa-Rica_1.RData")
+load(here("data_zenodo","chain_model_Costa-Rica_1.RData"))
 model1=results1
-load("chain_model_Costa-Rica_2.RData")
+load(here("data_zenodo","chain_model_Costa-Rica_2.RData"))
 model2=results1
-load("chain_model_Costa-Rica_3.RData")
+load(here("data_zenodo","chain_model_Costa-Rica_3.RData"))
 model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
@@ -40,14 +38,14 @@ suma_cr$varia=rownames(suma_cr)
 
 
 #Ecuador
-load("data_formodel_Ecuador.RData")
+load(here("data_zenodo","data_formodel_Ecuador.RData"))
 dat_ec=dat
 #### free prior
-load("chain_model_Ecuador_1.RData")
+load(here("data_zenodo","chain_model_Ecuador_1.RData"))
 model1=results1
 load("chain_model_Ecuador_2.RData")
 model2=results1
-load("chain_model_Ecuador_3.RData")
+load(here("data_zenodo","chain_model_Ecuador_3.RData"))
 model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
@@ -59,14 +57,14 @@ suma_ec=summary(mco_ec)
 suma_ec$varia=rownames(suma_ec)
 
 #Brazil
-load("data_formodel_Brazil.RData")
+load(here("data_zenodo","data_formodel_Brazil.RData"))
 dat_br=dat
 #### free prior
-load("chain_model_Brazil_1.RData")
+load(here("data_zenodo","chain_model_Brazil_1.RData"))
 model1=results1
-load("chain_model_Brazil_2.RData")
+load(here("data_zenodo","chain_model_Brazil_2.RData"))
 model2=results1
-load("chain_model_Brazil_3.RData")
+load(here("data_zenodo","chain_model_Brazil_3.RData"))
 model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
@@ -127,8 +125,7 @@ labs(col="",fill="")+ggtitle("b")+scale_color_manual(values=couleurs)
 
 
 ##################### Panel c ##################
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-res_partition=fread("sparsity_estimates.txt")
+res_partition=fread(here("data_zenodo","sparsity_estimates.txt"))
 forplot=melt(res_partition,id.vars=c("site","min_transect_elev","duration","Country","tot","pzerom"))
 
 couleurs2=c("#477998","#291F1E","#F64740")
@@ -162,15 +159,13 @@ top=plot_grid(pl1,pl2,leg,align = "hv",ncol=3,rel_widths=c(1,1,0.1))
 bottom=pl3
 plot_grid(top,bottom,align = "hv",ncol=1,rel_heights=c(1,1.5))
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/")
-pdf("Figure2.pdf",width=7,height=6)
+pdf(paste0(here("figures"),"/Figure2.pdf"),width=7,height=6)
 plot_grid(top,bottom,align = "hv",ncol=1,rel_heights=c(1,1.5))
 dev.off();
 
 
 ##################### Possible extra panel ##################
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-res_partition=fread("sparsity_estimates.txt")
+res_partition=fread(here("data_zenodo","sparsity_estimates.txt"))
 
 pl4=ggplot(data=res_partition,aes(x=duration,color=Country,y=pzerom))+geom_point()+
 ylab("% of zeros (non-interactions)")+
@@ -197,8 +192,7 @@ labs(fill="Linkage rule")+xlab("Sites")+
 scale_color_manual(values=couleurs2)+scale_fill_manual(values=couleurs2)+
 scale_y_continuous(labels = scales::percent)
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/")
-png("Figure_S3.png",width=1000,height=800,res=120)
+png(paste0(here("figures"),"/Figure_S3.png"),width=1000,height=800,res=120)
 pl
 dev.off();
 
@@ -294,14 +288,13 @@ labs(col="",fill="")+ggtitle("b")+coord_cartesian(expand=F)+
      scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
               labels = trans_format("log10", math_format(10^.x)))+annotation_logticks()
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/")
 leg <- ggpubr::as_ggplot(cowplot::get_legend(pl5))
 leg=leg+theme(legend.margin=margin(c(0,0,0,0)))
 pl5=pl5+theme(legend.position="none")
 
 pl=plot_grid(pl5,pl6,align = "hv",ncol=2,rel_widths=c(1,1))
 grid.arrange(pl,leg,ncol=2,widths=c(1,0.2))
-png("Figure_S2.png",width=2300,height=1000,res=300)
+png(paste0(here("figures"),"/Figure_S2.png"),width=2300,height=1000,res=300)
 grid.arrange(pl,leg,ncol=2,widths=c(1,0.2))
 dev.off();
 
@@ -317,11 +310,10 @@ tabu3$Country="Ecuador"
 table=rbind(tabu,tabu2,tabu3)
 names(table)[1]="hummingbird_numu"
 
-humm_table=merge(pred_L1,pred_L2,by=c("hummingbird_numu","Country"))
-humm_table=merge(humm_table,table,by=c("hummingbird_numu","Country"))
+humm_table=merge(pred_L1,pred_L2,by=c("hummingbird_num","Country"))
+humm_table=merge(humm_table,table,by.x=c("hummingbird_num","Country"),by.y=c("hummingbird_numu","Country"))
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data/")
-data.table::fwrite(humm_table,"humm_table.txt")
+data.table::fwrite(humm_table,paste0(here("data_zenodo"),"/humm_table.txt"))
 
 
 

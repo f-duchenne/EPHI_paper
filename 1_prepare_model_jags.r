@@ -2,18 +2,17 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
-pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags") 
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","here") 
 
 inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
+here::i_am("EPHI_paper.Rproj")
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
-tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
+tab=fread(here("data_zenodo",paste0("data_for_analyses_",pays,".txt")),na.string=c("",NA))
 
 #### CALCULATE TRAIT MATCHING:
 tab$mismatch=abs(tab$Tubelength-tab$culmen_length) #trait mismatch
@@ -63,7 +62,7 @@ dat=c(as.list(tab),as.list(tabu),list(N=nrow(tab),
 Nbirds=length(unique(tab$hummingbird_num)),Nbird_site=length(unique(tab$hummingbird_species_site_num)),Nsites=length(unique(tab$site_num)),Nplants=length(unique(tab$plant_num)),
 Ntemp=length(unique(tab$num_time)),Nsite=length(unique(tab$site_num)),Distance=Distance))
 
-save(dat,file=paste0("data_formodel_",pays,".RData"))
+save(dat,file=paste0(here("data_zenodo"),"/data_formodel_",pays,".RData"))
 }
 
 ######################################################################################################
@@ -151,31 +150,16 @@ r ~ dnegbin(0.2,4)
 }
 "
 
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-writeLines(model_string,con="model.txt")
-
-ParsStage <- c("barrier_infer","match_infer","Interceptpz","traitBarrier","Intercept","traitMismatch","pheno","abond","plant_effect","site_effect",
-"temp_effect","sitebird_effect","sd.plant","sd.bird","sd.site","sd.temp","r","edec","samp")
-
-Inits <- function(){list()}
-
-t1=Sys.time()
-results1 <- jags(model.file="model.txt", parameters.to.save=ParsStage, n.chains=1, data=dat,n.burnin = 50,  n.iter = 100, n.thin = 2,inits =Inits,jags.seed =2)
-t2=Sys.time()
-t2-t1
-
-save(results1,file=paste0("chain_model_ZI",j,".RData"))
-#
-
+writeLines(model_string,con=paste0(here("data_zenodo"),"/model.txt"))
 
 ############# TABLE S1
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
+
 plant_list=list()
 bird_list=list()
 tabf=NULL
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
-tab=fread(paste0("data_for_analyses_",pays,".txt"),na.string=c("",NA))
+tab=fread(here("data_zenodo",paste0("data_for_analyses_",pays,".txt")),na.string=c("",NA))
 tabf=rbind(tabf,tab)
 plant_list[[pays]]=unique(tab$plant_species)
 bird_list[[pays]]=unique(tab$hummingbird_species)
@@ -185,4 +169,4 @@ intersect(bird_list[[1]],bird_list[[2]])
 site=as.data.frame(unique(tabf[,c("site","midpoint_Longitude","midpoint_Latitude","min_transect_elev","Country")]))
 site=site[order(site$Country,site$min_transect_elev),]
 
-fwrite(site,"table_S1.csv")
+fwrite(site,paste0(here("data_zenodo"),"/table_S1.csv"))

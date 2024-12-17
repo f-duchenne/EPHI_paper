@@ -2,7 +2,6 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-rm(list=ls())
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
 			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr") 
 
@@ -11,22 +10,20 @@ inst <- pkgs %in% installed.packages()
 if (any(inst)) install.packages(pkgs[!inst])
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
-EPHI_version="2024-03-18"
-
-setwd(dir="C:/Users/Duchenne/Documents/EPHI_paper/data")
-source("C:/Users/Duchenne/Documents/EPHI_paper/scripts/additional scripts/function_to_predict_from_bayesian.r")
+here::i_am("EPHI_paper.Rproj")
+source(here("scripts/additional scripts","function_to_predict_from_bayesian.r"))
 
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
-load(paste0("data_formodel_",pays,".RData"))
-plant_res=fread(paste0("plants_per_site_per_month_",pays,".txt"))
+load(here("data_zenodo",paste0("data_formodel_",pays,".RData")))
+plant_res=fread(here("data_zenodo",paste0("plants_per_site_per_month_",pays,".txt")))
 plant_res=subset(plant_res,!is.na(Tubelength))
 
 #### conservative prior
-load(paste0("chain_model_",pays,"_1.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_1.RData")))
 model1=results1
-load(paste0("chain_model_",pays,"_2.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_2.RData")))
 model2=results1
-load(paste0("chain_model_",pays,"_3.RData"))
+load(here("data_zenodo",paste0("chain_model_",pays,"_3.RData")))
 model3=results1
 obj1=as.mcmc(model1)
 obj2=as.mcmc(model2)
@@ -57,10 +54,10 @@ random_effects=c("site","plant"),month=NA,year=NA,nb_net=1,duration=rep(12,nrow(
 
 pre1=merge(pre1,tabu,by="hummingbird_species")
 
-sites=fread(paste0("C:/Users/Duchenne/Documents/EPHI_paper/data_zenodo/Site_metadata_",pays,".txt"),na.strings = c("",NA))
+sites=fread(here("data_zenodo",paste0("Site_metadata_",pays,".txt")),na.strings = c("",NA))
 sites=subset(sites,habitat!="deforested")
 pre1b=merge(pre1,sites,by="site")
 pre1b$Country=pays
-fwrite(pre1b,paste0("initial_network_per_day",pays,".txt"))
+fwrite(pre1b,paste0(here("data_zenodo","initial_network_per_day",pays,".txt")))
 }
 
