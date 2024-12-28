@@ -1,3 +1,13 @@
+### PROJECT STRUCTURE
+.
+└── EPHI_paper
+    ├── EPHI_paper.Rproj
+    ├── data_zenodo
+    ├── scripts
+    │   ├── additional scripts
+    │   └── numbered scripts
+    ├── README.md
+
 ### DOWNLOADING THE DATA
 
 To allow reproducibility, processed data and results of Bayesian models are available in the subfolder named "data_zenodo" at this URL: https://doi.org/10.5281/zenodo.14418365. This subfolder contains the data used as input for the Bayesian model ran in Script 2, the output of that script as well as the output of robustness simulations (Script 7), to allow reproducing analyses without the need of a High Performance Computing platform. Using these processed data, one can thus start running the series of scripts from Script 3.
