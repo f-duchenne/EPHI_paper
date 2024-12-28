@@ -1,5 +1,6 @@
 ### PROJECT STRUCTURE
 
+```
 .
 
 └── EPHI_paper
@@ -15,6 +16,8 @@
         └── numbered scripts
         
     ├── README.md
+
+```
 
 ### DOWNLOADING THE DATA
 
