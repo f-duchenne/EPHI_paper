@@ -3,19 +3,12 @@
 ```
 .
 └── EPHI_paper
-
     ├── EPHI_paper.Rproj
-    
     ├── data_zenodo
-    
     ├── scripts
-    
         ├── additional scripts
-    
-        └── numbered scripts
-        
+        | numbered scripts
     ├── README.md
-
 ```
 
 ### DOWNLOADING THE DATA
