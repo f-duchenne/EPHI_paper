@@ -4,65 +4,92 @@
 #+ message = FALSE
 pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","here") 
 
+# Check if packages are already installed
 inst <- pkgs %in% installed.packages()
-if (any(inst)) install.packages(pkgs[!inst])
+# Install missing packages
+if (any(!inst)) install.packages(pkgs[!inst])
+# Load packages
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
+# Set the working directory for the "here" package
 here::i_am("EPHI_paper.Rproj")
 
+# Loop over countries to process data for each
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
 
-tab=fread(here("data_zenodo",paste0("data_for_analyses_",pays,".txt")),na.string=c("",NA))
+	# Load pre-processed data for the current country
+	tab=fread(here("data_zenodo",paste0("data_for_analyses_",pays,".txt")),na.string=c("",NA))
 
-#### CALCULATE TRAIT MATCHING:
-tab$mismatch=abs(tab$Tubelength-tab$culmen_length) #trait mismatch
-tab$elev=scale(tab$min_transect_elev)
+	#### Calculate Trait Matching:
+    # Compute mismatch between plant corolla length (Tubelength) and hummingbird bill length (culmen_length)
+	tab$mismatch=abs(tab$Tubelength-tab$culmen_length) #trait mismatch
+	
+	# Scale elevation values for numerical stability
+	tab$elev=scale(tab$min_transect_elev)
 
-#### CALCULATE PHENOLOGICAL MATCHING:
-tab$phenomatch=tab$phenoh*tab$phenop
+	 #### Calculate Phenological Matching:
+     # Multiply hummingbird phenology (`phenoh`) by plant phenology (`phenop`) to compute phenological overlap
+	tab$phenomatch=tab$phenoh*tab$phenop
 
-#ABONDANCE FLOWER THAT ARE NA ARE NON DETECTED PLANT ON THE TRANSECT, set a low abundance value:
-tab$abond_flower[is.na(tab$abond_flower) | tab$abond_flower==0]=1
-tab$abond_flower_log=log(tab$abond_flower)
+	#### Handle Missing Flower Abundance Data:
+	# For missing or zero flower abundance values, set to a small default value (1)
+	tab$abond_flower[is.na(tab$abond_flower) | tab$abond_flower==0]=1
+	# Compute the logarithm of flower abundance for the model
+	tab$abond_flower_log=log(tab$abond_flower)
 
-unique(tab$site)
-#REMOVE DATA WITHOUT TRAITS
-tab=subset(tab,!is.na(mismatch))
-unique(tab$site)
+	#### Data Cleaning:
+	# Remove rows where mismatch data is missing
+	tab=subset(tab,!is.na(mismatch))
+	unique(tab$site)
 
-#PREPARE DATA FOR TEMPORAL AND SPATIAL AUTOCORRELATION:
-tab$site <- factor(tab$site)
-tab$group <- factor(rep(1, nrow(tab)))
-tab$hummingbird_species_site=paste0(tab$hummingbird_species,tab$site)
+	#### Prepare Data for Temporal and Spatial Autocorrelation:
+	# Convert site to a factor
+	tab$site <- factor(tab$site)
+	# Create a placeholder group variable
+	tab$group <- factor(rep(1, nrow(tab)))
+	# Combine hummingbird species and site into a single variable
+	tab$hummingbird_species_site <- paste0(tab$hummingbird_species, tab$site)
 
-#convert factors to numerical indices for JAGS:
-tab$hummingbird_species_site_num=as.numeric(as.factor(tab$hummingbird_species_site))
-tab$hummingbird_num=as.numeric(as.factor(tab$hummingbird_species))
-tab$plant_num=as.numeric(as.factor(tab$plant_species))
-tab$site_num=as.numeric(as.factor(tab$site))
-tab$num_time=as.numeric(as.factor(tab$num_time)) #rescale this factor to start at one
+	#### Convert Factors to Numeric Indices for JAGS:
+	# Numeric indices for hummingbird species by site
+	tab$hummingbird_species_site_num <- as.numeric(as.factor(tab$hummingbird_species_site))
+	# Numeric indices for hummingbird species
+	tab$hummingbird_num <- as.numeric(as.factor(tab$hummingbird_species))
+	# Numeric indices for plant species
+	tab$plant_num <- as.numeric(as.factor(tab$plant_species))
+	# Numeric indices for sites
+	tab$site_num <- as.numeric(as.factor(tab$site))
+	# Numeric indices for temporal points (starting from 1)
+	tab$num_time <- as.numeric(as.factor(tab$num_time))
+	
+	#### Extract Unique Hummingbird Traits:
+	# Create a table with unique bill lengths for hummingbird species
+	tabu <- unique(tab[, c("hummingbird_num", "culmen_length")])
+	names(tabu) <- paste0(names(tabu), "u")  # Rename columns to avoid confusion with original columns
+	tabu <- tabu[order(tabu$hummingbird_numu), ]  # Sort by hummingbird_numu
 
-#create a table with bill length for hummingbirds
-tabu=unique(tab[,c("hummingbird_num","culmen_length")])
-names(tabu)=paste0(names(tabu),"u")
-tabu=tabu[order(tabu$hummingbird_numu),]
 
-#create a table with corolla length for plants
-# tabp=unique(tab[,c("plant_num","Tubelength")])
-# names(tabp)=paste0(names(tabp),"p")
-# tabp=tabp[order(tabu$plant_nump),]
+	#create a table with corolla length for plants
+	# tabp=unique(tab[,c("plant_num","Tubelength")])
+	# names(tabp)=paste0(names(tabp),"p")
+	# tabp=tabp[order(tabu$plant_nump),]
 
-sites=unique(tab[,c("site","site_num","midpoint_Longitude","midpoint_Latitude")])
-sites=sites[order(sites$site_num),]
-Distance=dist(sites[,c("midpoint_Longitude","midpoint_Latitude")], method="euclidean", diag=TRUE, upper=TRUE)
-Distance=as.matrix(Distance)/max(Distance)
+	#### Calculate Geographic Distances Between Sites:
+	# Extract unique site information with geographic coordinates
+	sites=unique(tab[,c("site","site_num","midpoint_Longitude","midpoint_Latitude")])
+	sites=sites[order(sites$site_num),]
+	# Compute a distance matrix based on geographic coordinates
+	Distance=dist(sites[,c("midpoint_Longitude","midpoint_Latitude")], method="euclidean", diag=TRUE, upper=TRUE)
+	 # Normalize distances to range [0, 1]
+	Distance=as.matrix(Distance)/max(Distance)
 
-#assemble data
-dat=c(as.list(tab),as.list(tabu),list(N=nrow(tab),
-Nbirds=length(unique(tab$hummingbird_num)),Nbird_site=length(unique(tab$hummingbird_species_site_num)),Nsites=length(unique(tab$site_num)),Nplants=length(unique(tab$plant_num)),
-Ntemp=length(unique(tab$num_time)),Nsite=length(unique(tab$site_num)),Distance=Distance))
+	#### Assemble Data for JAGS Model:
+	dat=c(as.list(tab),as.list(tabu),list(N=nrow(tab),
+	Nbirds=length(unique(tab$hummingbird_num)),Nbird_site=length(unique(tab$hummingbird_species_site_num)),Nsites=length(unique(tab$site_num)),Nplants=length(unique(tab$plant_num)),
+	Ntemp=length(unique(tab$num_time)),Nsite=length(unique(tab$site_num)),Distance=Distance))
 
-save(dat,file=paste0(here("data_zenodo"),"/data_formodel_",pays,".RData"))
+	# Save the processed data to a file for modeling
+	save(dat,file=paste0(here("data_zenodo"),"/data_formodel_",pays,".RData"))
 }
 
 ######################################################################################################

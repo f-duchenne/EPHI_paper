@@ -25,7 +25,7 @@ for(pays in c("Costa-Rica","Ecuador","Brazil")){ #loop over the three countries
 
 	# Load country-specific data
 	load(here("data_zenodo",paste0("data_formodel_",pays,".RData"))) #loading data
-	plant_res=fread(paste0("plants_per_site_per_month_",pays,".txt"))
+	plant_res=fread(here("data_zenodo",paste0("plants_per_site_per_month_",pays,".txt")))
 	plant_res=subset(plant_res,!is.na(Tubelength))
 	sites=fread(here("data_zenodo",paste0("Site_metadata_",pays,".txt")),na.strings = c("",NA))
 
