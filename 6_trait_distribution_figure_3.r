@@ -2,57 +2,88 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis",
-			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","ggeffects","viridis","here") 
+pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","R2jags","mcmcOutput","mcmcplots","MCMCvis","pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","ungeviz","lme4","mgcv","ggpubr","emmeans","ggeffects","viridis","here") 
 
 
+# Check if packages are already installed
 inst <- pkgs %in% installed.packages()
-if (any(inst)) install.packages(pkgs[!inst])
+# Install missing packages
+if (any(!inst)) install.packages(pkgs[!inst])
+# Load packages
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
+# Set the working directory for the "here" package
 here::i_am("EPHI_paper.Rproj")
+#color vector for figures
 couleurs=c("#679436","#0B4F6C","deeppink")
 
 ######################## TRAITS
-humm_table=fread(here("data_zenodo","humm_table.txt"))
-
+#initiliaze empty data frames
 ini_net=NULL
 extinctions=NULL
+#loop over the three countries
 for(pays in c("Costa-Rica","Ecuador","Brazil")){
-ini_netc=fread(here("data_zenodo",paste0("initial_network_per_day",pays,".txt")))
-ini_netc$Country=pays
-ini_net=rbind(ini_net,ini_netc)
+	#load data
+	ini_netc=fread(here("data_zenodo",paste0("initial_network_per_day",pays,".txt")))
+	ini_netc$Country=pays
+	#combine data
+	ini_net=rbind(ini_net,ini_netc)
 }
+
+#correct country names
 ini_net$Country=gsub("-"," ",ini_net$Country,fixed=T)
 
+#extract plant list for each site, with trait values
 bp=unique(ini_net[,c("site","Country","plant_species","Tube_length","min_transect_elev")])
 bp$type="plants"
 names(bp)[3:4]=c("species","trait")
+
+#extract bird list for each site, with trait values
 bh=unique(ini_net[,c("site","Country","hummingbird_species","culmen_lengthu","min_transect_elev")])
 bh$type="birds"
 names(bh)[3:4]=c("species","trait")
 
+#combine bird and plants data
 bf=rbind(bh,bp)
 bf$type=as.factor(bf$type)
 bf$facet=bf$Country
 
+
+# Statistical model: Analyze trait changes over elevation
 model=lmer(trait~min_transect_elev*type*Country+(1|site),data=bf)
+# Calculate trends for each combination of type and country
 obj=as.data.frame(emtrends(model,specs=c("type","Country"),var="min_transect_elev"))
 obj$signi="no"
 obj$signi[obj$upper.CL<0]="yes"
 obj$signi[obj$lower.CL>0]="yes"
 
+#predict of the lmer model
 pre=ggpredict(model,c("min_transect_elev","type","Country"))
+# Define elevation limits by country
 lims=bf %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
 pre=merge(pre,lims,by.x="facet",by.y="Country")
 pre=merge(pre,obj,by.x=c("group","facet"),by.y=c("type","Country"))
 pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
 
-
+#extract model coefficients
 tabs21=as.data.frame(summary(model)$coefficients)[,1:2]
 tabs21$varia=rownames(tabs21)
 tabs21$response="Trait values"
 
+figs4=ggplot()+
+geom_density(data=bf,aes(x=trait,col=min_transect_elev,fill=min_transect_elev,group=min_transect_elev),alpha=0.1)+
+xlab("Bill or Corolla length(mm)")+ylab("Density")+
+theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),strip.background = element_blank())+
+ggtitle("")+labs(color="Elev.",fill="Elev.")+
+facet_grid(cols=vars(Country),rows=vars(type))+scale_color_viridis(option="mako")+scale_fill_viridis(option="mako")+
+coord_cartesian(expand=F)
+
+png(paste0(here("figures"),"/Figure_S4.png"),width=1200,height=1000,res=160)
+figs4
+dev.off();
+
+### Panel a of Figure 3
 pl1=ggplot()+
 geom_jitter(data=bf,aes(x=min_transect_elev,y=trait,col=type,fill=type),alpha=0.3,width = 20,size=0.5)+
 geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=0.2)+
@@ -65,46 +96,41 @@ scale_color_manual(values=c("darkorchid4","chartreuse4"))+scale_fill_manual(valu
 scale_linetype_manual(values=c("dashed","solid"))+guides(linetype="none")+facet_wrap(~facet)+
 scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))
 
-pl1b=ggplot()+
-geom_density(data=bf,aes(x=trait,col=min_transect_elev,fill=min_transect_elev,group=min_transect_elev),alpha=0.1)+
-xlab("Bill or Corolla length(mm)")+ylab("Density")+
-theme_bw()+theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-panel.border = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),strip.background = element_blank())+
-ggtitle("")+labs(color="Elev.",fill="Elev.")+
-facet_grid(cols=vars(Country),rows=vars(type))+scale_color_viridis(option="mako")+scale_fill_viridis(option="mako")+
-coord_cartesian(expand=F)
 
-png(paste0(here("figures"),"/Figure_S4.png"),width=1200,height=1000,res=160)
-pl1b
-dev.off();
-
-####Panel b
+### Panel b
+# calculate the proportion of forbidden links per site
 forb=as.data.frame(ini_net %>% group_by(site,min_transect_elev,Country) %>%
 summarise(compl=mean(-1*abs(trait_plant-match_infer)),prop_forbidden=mean(average_proba_without_barrier-average_proba),
 nbh=length(unique(hummingbird_species)),nbp=length(unique(plant_species))))
 
+#save results
 fwrite(forb,paste0(here("data_zenodo"),"/network_match_barrier.txt"))
 
+# Statistical model: Analyze trait changes in the proportion of forbidden links over elevation
 model=glm(prop_forbidden~min_transect_elev*Country,data=forb,family=quasibinomial)
+# Calculate trends for each combination of type and country
 obj=as.data.frame(emtrends(model,specs=c("Country"),var="min_transect_elev"))
 obj$signi="no"
 obj$signi[obj$asymp.UCL<0]="yes"
 obj$signi[obj$asymp.LCL>0]="yes"
 obj$signi=factor(obj$signi,levels=c("yes","no"))
 
-
+#predict of the GLM
 pre=ggpredict(model,c("min_transect_elev[all]","Country"))
+# Define elevation limits by country
 lims=bf %>% group_by(Country) %>% summarise(mini=min(min_transect_elev),maxi=max(min_transect_elev))
 pre=merge(pre,lims,by.x="group",by.y="Country")
 pre=merge(pre,obj,by.x=c("group"),by.y=c("Country"))
 pre[pre$x<pre$mini | pre$x>pre$maxi,c("conf.high","conf.low","predicted")]=NA
 pre$group=factor(pre$group,levels=c("Brazil","Costa Rica","Ecuador"))
 
+# extract coefficients of the GLM
 tabs23=as.data.frame(summary(model)$coefficients)[,1:2]
 tabs23$varia=rownames(tabs23)
 tabs23$response="Proportion of forbidden links"
 fwrite(rbind(tabs21,tabs23),"Table_S2.csv")
 
+# plot panel b
 pl3=ggplot()+
 geom_point(data=forb,aes(y=prop_forbidden,x=min_transect_elev,col=Country),size=1.5)+
 geom_ribbon(data=pre,aes(x=x,y=predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=0.2)+

@@ -7,13 +7,20 @@ pkgs <- c("randomForest","data.table", "dplyr", "lubridate","lme4","qgraph","igr
 			"pastecs","ggplot2","cowplot","gridExtra","scales","reshape2","bipartite","stringr","mgcv","ggpubr","emmeans","piecewiseSEM","car","glmmTMB","here") 
 
 
+# Check if packages are already installed
 inst <- pkgs %in% installed.packages()
-if (any(inst)) install.packages(pkgs[!inst])
+# Install missing packages
+if (any(!inst)) install.packages(pkgs[!inst])
+# Load packages
 pkg_out <- lapply(pkgs, require, character.only = TRUE)
 
+# Set the working directory for the "here" package
 here::i_am("EPHI_paper.Rproj")
+
+#color vector for figures
 couleurs=c("#679436","#0B4F6C","deeppink")
 
+# load robustness results
 extinctions=fread(here("data_zenodo","robustness_simulations_all.csv"))
 
 ###################
@@ -42,34 +49,34 @@ scale_x_continuous(n.breaks=2,labels = scales::number_format(accuracy = 1))
 b3=subset(b,rank2!=0) %>% group_by(site,site2,Country,barrier,r,min_transect_elev,nbh,nbp,scenario,prop_forbidden_m,C_m,N_m,Inter_eve_m,Cperso_m,symmetrie,essai) %>%
 summarise(robustness=sum(persistence)/length(persistence))
 
-
-### FIT STATISTICAL MODEL
+# prepare variables for statistical models
 b3$barrierbis=0
 b3$barrierbis[b3$barrier=="with forbidden links"]=1
 b3$barrierbis=as.factor(b3$barrierbis)
 b3$sitebis=as.factor(b3$site)
 b3$alpha=as.factor(b3$r)
 
+### FIT STATISTICAL MODELS
 #when generalists get extinct first
 model=glmmTMB(robustness~barrierbis*sitebis*alpha,data=subset(b3,scenario=="generalists first"),family=beta_family(),control=glmmTMBControl(optCtrl=list(iter.max=1e5,eval.max=1e5)))
-
 #when specialists get extinct first
 model2=glmmTMB(robustness~barrierbis*sitebis*alpha,data=subset(b3,scenario=="specialists first"),family=beta_family(),control=glmmTMBControl(optCtrl=list(iter.max=1e5,eval.max=1e5)))
 
-
-##### FIGURE 4, let's consider only the first scenario here
+# predict for the scenario when  generalists get extinct first
 pred=ggpredict(model,c("barrierbis","sitebis","alpha"))
 pred=merge(pred,unique(b3[,c("site","Country","prop_forbidden_m","barrierbis")]),by.x=c("group","x"),by.y=c("site","barrierbis"))
 
-model.emm <- emmeans(model, ~ barrierbis | sitebis + alpha,typ="response")
-
+# calculate effect of epxloitation barrier on robustness for each site 
 model.emm <- as.data.frame(contrast(model.emm, "trt.vs.ctrl", ref = "barrierbis0"))
+#merge with site level predictions
 pred=merge(pred,model.emm,by.x=c("group","facet"),by.y=c("sitebis","alpha"))
+#calculate significancy of effects
 pred$signifi="significant"
 pred$signifi[pred$p.value>0.05]="not significant"
 pred$signifi=factor(pred$signifi,levels=c("significant","not significant"))
 pred$scenario="generalists first"
 
+#focus on effects for exploitation barrier only
 pred2=subset(pred,facet==1)
 dim(pred2[pred2$p.value<0.05 & pred2$odds.ratio<1,])
 dim(pred2[pred2$p.value<0.05 & pred2$odds.ratio>1,])
