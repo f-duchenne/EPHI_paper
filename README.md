@@ -12,7 +12,7 @@ To reproducing the analysis, the user will need the "R2jags" R package. Before i
 
 Scripts are numbered in the order they were used.
 
-To reproduce analyses, open the the "EPHI_paper.Rproj" with Rstudio (R studio can be downloaded for free here: "https://posit.co/downloads/"). Opening the R project under R studio will allow the "here" R package (https://cran.r-project.org/web/packages/here/vignettes/here.html) to locate automatically the data folder on your computer. The user should be able to run all the scripts without the need to change any paths, excepting for the scripts that run on HPC (scripts 2 and 7). 
+To reproduce analyses, open the "EPHI_paper.Rproj" with Rstudio (R studio can be downloaded for free here: "https://posit.co/downloads/"). Opening the R project under R studio will allow the "here" R package (https://cran.r-project.org/web/packages/here/vignettes/here.html) to locate automatically the data folder on your computer. The user should be able to run all the scripts without the need to change any paths, excepting for the scripts that run on HPC (scripts 2 and 7). 
 
 Script 0 merges plant-hummingbird interaction data from different countries in one unique dataset, and merge that dataset with species traits.
 
