@@ -1,6 +1,10 @@
 ### DOWNLOADING THE DATA
 
+<<<<<<< HEAD
 To allow reproducibility, processed data and results of Bayesian models are available in the subfolder named "data_zenodo" at this URL: https://doi.org/10.5281/zenodo.14418365. This subfolder contains the data used as input for the Bayesian model ran in Script 2, the output of that script as well as the output of robustness simulations (Script 7), to allow reproducing analyses without the need of a High Performance Computing platform. Using these processed data, one can thus start running the series of scripts from Script 3.
+=======
+The data needed to reproduce analyses are available here: 
+>>>>>>> 2b8084a54710136982aba12de48eb3d09add87ab
 
 Raw data will be available here: https://doi.org/10.5281/zenodo.14185547. They are currently under embargo until the data paper describing them will be published, but can be requested to francois[dot]duchenne[dot]bio[at]gmail.com. Using these raw data, one can start running the series of scripts from the beginning (Script 0).
 
