@@ -25,13 +25,14 @@ To reproducing the analysis, the user will need the "R2jags" R package. Before i
 
 Scripts are numbered in the order they were used.
 
-To reproduce analyses, open the "EPHI_paper.Rproj" with Rstudio (R studio can be downloaded for free here: "https://posit.co/downloads/"). Opening the R project under R studio will allow the "here" R package (https://cran.r-project.org/web/packages/here/vignettes/here.html) to locate automatically the data folder on your computer. The user should be able to run all the scripts without the need to change any paths, excepting for the scripts that run on HPC (scripts 2 and 7). 
+To reproduce analyses, open the "EPHI_paper.Rproj" with Rstudio (R studio can be downloaded for free here: https://posit.co/downloads/). Opening the R project under R studio will allow the "here" R package (https://cran.r-project.org/web/packages/here/vignettes/here.html) to locate automatically the data folder on your computer. Then use the menu "File > Open file" to open the script that should run and execute it in the terminal. The user should be able to run all the scripts without the need to change any paths, excepting for the scripts that run on HPC (scripts 2 and 7). 
 
 Script 0 merges plant-hummingbird interaction data from different countries in one unique dataset, and merge that dataset with species traits.
 
 Script 1 prepares the data and the Bayesian model (output as a text file) for analyses.
 
-Script 2 fits the Bayesian model, for each country. It was run on a HPC plateform.
+Script 2 fits the Bayesian model, for each country (run on HPC, results are provided so there is no need to run it to reproduce analyses).
+
 
 Script 3 uses the output of the Bayesian model to analyse how the proportion of zeros (missing interactions) varies with the sampling pressure.
 
@@ -41,7 +42,8 @@ Script 5 predicts the interaction network for each site.
 
 Script 6 studies how trait distributions (bill and corolla lengths) vary across sites and how it translates to proportion of forbidden links.
 
-Script 7 performs robustness simulations
+Script 7 performs robustness simulations (run on HPC, results are provided so there is no need to run it to reproduce analyses).
+
 
 Script 8 analyses the output of robustness simulations to estimate the effect of forbidden links on robustness.
 
